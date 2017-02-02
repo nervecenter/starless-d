@@ -1,6 +1,4 @@
-#!/usr/bin/python
-
-import numpy as np
+/*import numpy as np
 import matplotlib.pyplot as plt
 import scipy.ndimage as ndim
 import scipy.misc as spm
@@ -14,88 +12,102 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-#importing scene
-try:
-    import ConfigParser as configparser
-except ImportError: # we're on python 3
-    import configparser
-
 import blackbody as bb
 import bloom
 
 import gc
-import curses
+import curses*/
 
+enum Method { LEAPFROG, RK4 }
 
-#enums
-METH_LEAPFROG = 0
-METH_RK4 = 1
+struct Resolution
+{
+	int w = 800;
+	int h = 600;
+}
 
+struct Options {
+	bool LOFI = false;
 
-#rough option parsing
-LOFI = False
+	bool DISABLE_DISPLAY = false;
+	bool DISABLE_SHUFFLING = false;
 
-DISABLE_DISPLAY = 0
-DISABLE_SHUFFLING = 0
+	int NTHREADS = 4;
 
-NTHREADS = 4
+	bool DRAWGRAPH = true;
 
-DRAWGRAPH = True
+	bool OVERRIDE_RES = false;
 
-OVERRIDE_RES = False
+	string SCENE_FNAME = "scenes/default.scene";
 
-SCENE_FNAME = 'scenes/default.scene'
+	int CHUNKSIZE = 9000;
 
-CHUNKSIZE = 9000
+	Resolution RESOLUTION;
+}
 
-for arg in sys.argv[1:]:
-    if arg == '-d':
-        LOFI = True
-        continue
-    if (arg == '--no-graph'):
-        DRAWGRAPH = False
-        continue
-    if arg == '--no-display':
-        DISABLE_DISPLAY = 1
-        continue
-    if arg == '--no-shuffle':
-        DISABLE_SHUFFLING = 1
-        continue
+void main(string[] args)
+{
+	Options options = Options();
+	
+	foreach (arg; args)
+	{
+		if (arg == "-d")
+		{
+			options.LOFI = true;
+		}
+		else if (arg == "--no-graph")
+		{
+			options.DRAWGRAPH = false;
+		}
+		else if (arg == "--no-display")
+		{
+			options.DISABLE_DISPLAY = true;
+		}
+		else if (arg == "--no-shuffle")
+		{
+			options.DISABLE_SHUFFLING = true;
+		}
+		else if ((arg == "-o") || (arg == "--no-bs"))
+		{
+			options.DRAWGRAPH = false;
+			options.DISABLE_DISPLAY = true;
+			options.DISABLE_SHUFFLING = true;
+		}
+		else if (arg[0..2] == "-c")
+		{
+			options.CHUNKSIZE = to!int(arg[2..$]);
+		}
+		else if (arg[0..2] == "-j")
+		{
+			options.NTHREADS = to!int(arg[2..$]);
+		}
+		else if (arg[0..2] == "-r")
+		{
+			auto res = arg[2..$].split('x').map(n => to!int(n)).array;
+			if (len(res) != 2)
+			{
+				logger.error("Error: Resolution \"%s\" unreadable", arg[2..$]);
+				logger.error("Please format resolution correctly (e.g.: -r640x480)");
+				return;
+			}
+			options.RESOLUTION = Resolution(res[0], res[1]);
+			options.OVERRIDE_RES = true;
+		}
+		else if (arg[0] == '-')
+		{
+			logger.error("Unrecognized option: %s", arg);
+		}
+		else
+		{
+			options.SCENE_FNAME = arg;
+		}
+	}
 
-    if (arg == '-o') or (arg == '--no-bs'):
-        DRAWGRAPH = False
-        DISABLE_DISPLAY = True
-        DISABLE_SHUFFLING = True
-        continue
-
-    if (arg[0:2] == '-c'):
-        CHUNKSIZE = int(arg[2:])
-        continue
-
-    if arg[0:2] == "-j":
-        NTHREADS = int(arg[2:])
-        continue
-
-    if arg[0:2] == "-r":
-        RESOLUTION = [int(x) for x in arg[2:].split('x')]
-        OVERRIDE_RES = True
-        if (len(RESOLUTION) != 2):
-            logger.error('''error: resolution "%s" unreadable''', arg[2:])
-            logger.error("please format resolution correctly (e.g.: -r640x480)")
-            exit()
-        continue
-
-    if arg[0] == '-':
-        logger.error("unrecognized option: %s", arg)
-        exit()
-
-    SCENE_FNAME = arg
-
-
-
-if not os.path.isfile(SCENE_FNAME):
-    logger.error("scene file \"%s\" does not exist", SCENE_FNAME)
-    sys.exit(1)
+	if (!exists(options.SCENE_FNAME))
+	{
+		logger.error("Scene file \"%s\" does not exist", options.SCENE_FNAME);
+		return;
+	}
 
 
 defaults = {
