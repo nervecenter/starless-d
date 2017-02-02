@@ -23,10 +23,19 @@ import std.file,
 
 enum Method { LEAPFROG, RK4 }
 
+enum ST { NONE, TEXTURE, FINAL }
+
+enum DT { NONE, TEXTURE, SOLID, GRID, BLACKBODY }
+
 struct Resolution
 {
 	int w = 800;
 	int h = 600;
+}
+
+struct Vector3
+{
+	double x, y, z;
 }
 
 struct Options {
@@ -140,54 +149,36 @@ defaults = {
             "sRGBIn":"1",
             }
 
-cfp = configparser.ConfigParser(defaults)
-logger.debug("Reading scene %s...", SCENE_FNAME)
-cfp.read(SCENE_FNAME)
+	cfp = configparser.ConfigParser(defaults);
+    logger.debug("Reading scene %s...", SCENE_FNAME);
+    cfp.read(SCENE_FNAME);
 
 
-FOGSKIP = 1
+	bool FOGSKIP = true;
 
 
-METHOD = METH_RK4
+	Method METHOD = Method.RK4;
 
-#enums to avoid per-iteration string comparisons
+	//enums to avoid per-iteration string comparisons
 
-ST_NONE = 0
-ST_TEXTURE = 1
-ST_FINAL = 2
 
-st_dict = {
-        "none":ST_NONE,
-        "texture":ST_TEXTURE,
-        "final":ST_FINAL
-    }
-
-DT_NONE = 0
-DT_TEXTURE = 1
-DT_SOLID = 2
-DT_GRID = 3
-DT_BLACKBODY = 4
-
-dt_dict = {
-        "none":DT_NONE,
-        "texture":DT_TEXTURE,
-        "solid":DT_SOLID,
-        "grid":DT_GRID,
-        "blackbody":DT_BLACKBODY
-    }
-
-#this section works, but only if the .scene file is good
-#if there's anything wrong, it's a trainwreck
-#must rewrite
-try:
-    if not OVERRIDE_RES:
-        RESOLUTION = [int(x) for x in cfp.get('lofi','Resolution').split(',')]
-    NITER = int(cfp.get('lofi','Iterations'))
-    STEP = float(cfp.get('lofi','Stepsize'))
-except (KeyError, configparser.NoSectionError):
-    logger.debug("error reading scene file: insufficient data in lofi section")
-    logger.debug("using defaults.")
-
+	//this section works, but only if the .scene file is good
+	//if there's anything wrong, it's a trainwreck
+	//must rewrite
+	try
+	{
+		if (!options.OVERRIDE_RES)
+		{
+			RESOLUTION = [int(x) for x in cfp.get('lofi','Resolution').split(',')];
+			NITER = int(cfp.get('lofi','Iterations'));
+			STEP = float(cfp.get('lofi','Stepsize'));
+		}
+	}
+    catch (KeyError, configparser.NoSectionError)
+	{
+		logger.debug("Error reading scene file: Insufficient data in \"lofi\" section");
+		logger.debug("Using defaults.");
+	}
 
 if not LOFI:
     try:
@@ -236,7 +227,7 @@ try:
     AIRY_RADIUS = float(cfp.get('materials','Airy_radius'))
     FOGMULT = float(cfp.get('materials','Fogmult'))
 
-    #perform linear rgb->srgb conversion
+		//perform linear rgb->srgb conversion
     SRGBOUT = int(cfp.get('materials','sRGBOut'))
     SRGBIN = int(cfp.get('materials','sRGBIn'))
 except (KeyError, configparser.NoSectionError):
