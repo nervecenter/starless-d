@@ -18,6 +18,9 @@ import bloom
 import gc
 import curses*/
 
+import std.file,
+	std.conv;
+
 enum Method { LEAPFROG, RK4 }
 
 struct Resolution
@@ -83,7 +86,7 @@ void main(string[] args)
 		}
 		else if (arg[0..2] == "-r")
 		{
-			auto res = arg[2..$].split('x').map(n => to!int(n)).array;
+			int[] res = arg[2..$].split('x').map(n => to!int(n)).array;
 			if (len(res) != 2)
 			{
 				logger.error("Error: Resolution \"%s\" unreadable", arg[2..$]);
