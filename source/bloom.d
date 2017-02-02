@@ -5,31 +5,33 @@ module starless.bloom;
 //import numpy as np
 import std.math;
 
+extern (C) double j1(double x);
+
 // "airy disk" function (actually approximate, and a rescaling, but it's ok)
-def
+double
 airy_disk(x)
 {  
-    return pow(2.0 *j1(x)/(x), 2);
+    return pow(2.0 * j1(x) / (x), 2);
 }
 
 // generate a (2*size+1,2*size+1) convolution kernel with "radii" scale
 // where the function above is assumed to have "radius" one
 // scale is a 3-vector for RGB
 def
-generate_kernel(scale,size)
+generate_kernel(scale, size)
 {
-    x = np.arange(-size,size+1,1.0);
-    y = np.arange(-size,size+1,1.0);
+    x = np.arange(-size, size + 1, 1.0);
+    y = np.arange(-size, size + 1, 1.0);
 
-    xs, ys = np.meshgrid(x,y);
+    xs, ys = np.meshgrid(x, y);
 
-    kernel = np.zeros((xs.shape[0],xs.shape[1],3));
+    kernel = np.zeros((xs.shape[0], xs.shape[1], 3));
 
     r = np.sqrt(xs**2 + ys**2) + 0.000001;
-    kernel[:,:,:] = airy_disk(r[:,:,np.newaxis]/scale[np.newaxis,np.newaxis,:]);
+    kernel[:, :, :] = airy_disk(r[:, :, np.newaxis] / scale[np.newaxis, np.newaxis, :]);
 
 	//normalization
-    kernel /= kernel.sum(axis=(0,1))[np.newaxis,np.newaxis,:];
+    kernel /= kernel.sum(axis = (0, 1))[np.newaxis, np.newaxis, :];
 
 	return kernel;
 }
@@ -43,14 +45,14 @@ enum SPECTRUM = [1.0, 0.86, 0.61];
 // red channel = radius and the other two rescaled as of above
 // the kernel pixel size is fixed by kernel_radius
 def
-airy_convolve(array,radius,kernel_radius=25)
+airy_convolve(array, radius, kernel_radius = 25)
 {
     kernel = generate_kernel(radius * SPECTRUM , kernel_radius);
 
-    out = np.zeros((array.shape[0],array.shape[1],3));
+    out = np.zeros((array.shape[0], array.shape[1], 3));
     for i in range(3)
 	{
-        out[:,:,i] = convolve2d(array[:,:,i],kernel[:,:,i],mode='same',boundary='symm');
+        out[:, :, i] = convolve2d(array[:, :, i], kernel[:, :, i], mode = 'same', boundary = 'symm');
 	}
 
     return out;
