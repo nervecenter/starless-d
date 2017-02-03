@@ -1,15 +1,22 @@
+/*
+ *  j1.d - D implementation of the Bessel function of the first kind
+ *  Translated from the Cephes math library by Stephen L. Moshier
+ *
+ *  translated by Chris Collazo for starless-d
+ */
+
 module starless.j1;
 
 import std.math;
 
-static double RP[4] =
+static double[4] RP =
 	[
 		-8.99971225705559398224E8,
 		4.52228297998194034323E11,
 		-7.27494245221818276015E13,
 		3.68295732863852883286E15,
 	];
-static double RQ[8] =
+static double[8] RQ =
 	[
 		6.20836478118054335476E2,
 		2.56987256757748830383E5,
@@ -21,7 +28,7 @@ static double RQ[8] =
 		5.32278620332680085395E18,
 	];
 
-static double PP[7] =
+static double[7] PP =
 	[
 		7.62125616208173112003E-4,
 		7.31397056940917570436E-2,
@@ -31,7 +38,7 @@ static double PP[7] =
 		5.21451598682361504063E0,
 		1.00000000000000000254E0,
 	];
-static double PQ[7] =
+static double[7] PQ =
 	[
 		5.71323128072548699714E-4,
 		6.88455908754495404082E-2,
@@ -41,7 +48,7 @@ static double PQ[7] =
 		5.20982848682361821619E0,
 		9.99999999999999997461E-1,
 	];
-static double QP[8] =
+static double[8] QP =
 	[
 		5.10862594750176621635E-2,
 		4.98213872951233449420E0,
@@ -52,7 +59,7 @@ static double QP[8] =
 		2.11688757100572135698E2,
 		2.52070205858023719784E1,
 	];
-static double QQ[7] =
+static double[7] QQ =
 	[
 		7.42373277035675149943E1,
 		1.05644886038262816351E3,
