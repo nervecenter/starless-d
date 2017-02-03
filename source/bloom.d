@@ -3,13 +3,16 @@ module starless.bloom;
 //from scipy.special import j1
 //from scipy.signal import convolve2d
 //import numpy as np
-import std.math;
+import std.math,
+	std.range,
+	std.conv,
+	starless.j1;
 
-extern (C) double j1(double x);
+import starless.tracer : Vector3;
 
 // "airy disk" function (actually approximate, and a rescaling, but it's ok)
 double
-airy_disk(x)
+airy_disk(double x)
 {  
     return pow(2.0 * j1(x) / (x), 2);
 }
@@ -18,16 +21,30 @@ airy_disk(x)
 // where the function above is assumed to have "radius" one
 // scale is a 3-vector for RGB
 def
-generate_kernel(scale, size)
+generate_kernel(Vector3 scale, int size)
 {
-    x = np.arange(-size, size + 1, 1.0);
-    y = np.arange(-size, size + 1, 1.0);
+    double[][] xs =
+		iota(-size, size + 1)
+		.map(n => n.to!double())
+		.array
+		.repeat
+		.take(2*size+1)
+		.array;
+    double[][] ys =
+		iota(-size, size + 1)
+		.map(n => n.to!double()
+			       .repeat()
+			       .take(2*size+1)
+			       .array)
+		.array;
 
-    xs, ys = np.meshgrid(x, y);
+	double[xs.length][xs[0].length][3] kernel;
 
-    kernel = np.zeros((xs.shape[0], xs.shape[1], 3));
+	double[][] r = xs.dup;
+	foreach (int i, ref row; r)
+		foreach (int j, ref ele; row)
+				ele = sqrt(pow(xs[i][j], 2) + pow(ys[i][j], 2)) + 0.000001;
 
-    r = np.sqrt(xs**2 + ys**2) + 0.000001;
     kernel[:, :, :] = airy_disk(r[:, :, np.newaxis] / scale[np.newaxis, np.newaxis, :]);
 
 	//normalization
