@@ -38,15 +38,32 @@ generate_kernel(Vector3 scale, int size)
 			       .array)
 		.array;
 
-	double[xs.length][xs[0].length][3] kernel;
-
 	double[][] r = xs.dup;
 	foreach (int i, ref row; r)
 		foreach (int j, ref ele; row)
 			ele = sqrt(pow(xs[i][j], 2) + pow(ys[i][j], 2)) + 0.000001;
 
-	auto something = r[:, :, np.newaxis] / scale[np.newaxis, np.newaxis, :];
-    kernel[:, :, :] = airy_disk(something);
+	double[][][] r_newAxes;
+	foreach (int i, row; r)
+		foreach (int j, ele; row)
+			r_newAxes[i][j] = [ele];
+
+	double[][][] afterDiv;
+	foreach (int i, row; r_newAxes)
+	{
+		foreach (int j, col; row)
+		{
+			afterDiv[i][j] ~= col[0] / scale.x;
+			afterDiv[i][j] ~= col[0] / scale.y;
+			afterDiv[i][j] ~= col[0] / scale.z;
+		}
+	}
+	
+	double[xs.length][xs[0].length][3] kernel;
+	foreach (int i, ref row; kernel)
+		foreach (int j, ref col; row)
+			foreach (int k, ref ele; col)
+				ele = airy_disk(afterDiv[i][j][k]);
 
 	//normalization
     kernel /= kernel.sum(axis = (0, 1))[np.newaxis, np.newaxis, :];
