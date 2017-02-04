@@ -73,7 +73,7 @@ generate_kernel(Vector3 scale, int size)
 
 // computed from approximate position of red green and blue in the spectrum
 // it's a brutal approximation, but it vaguely looks like the real thing
-enum SPECTRUM = [1.0, 0.86, 0.61];
+enum Vector3 SPECTRUM = Vector3(1.0, 0.86, 0.61);
 
 
 // convolve a 2D RGB array with three airy kernels with radius of
@@ -84,12 +84,12 @@ airy_convolve(array, radius, kernel_radius = 25)
 {
     kernel = generate_kernel(radius * SPECTRUM , kernel_radius);
 
-    out = np.zeros((array.shape[0], array.shape[1], 3));
-    for i in range(3)
+    output = np.zeros((array.shape[0], array.shape[1], 3));
+    foreach (i; 0..3)
 	{
-        out[:, :, i] = convolve2d(array[:, :, i], kernel[:, :, i], mode = 'same', boundary = 'symm');
+        output[:, :, i] = convolve2d(array[:, :, i], kernel[:, :, i], mode = 'same', boundary = 'symm');
 	}
 
-    return out;
+    return output;
 }
 
