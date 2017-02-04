@@ -87,7 +87,10 @@ airy_convolve(array, radius, kernel_radius = 25)
     output = np.zeros((array.shape[0], array.shape[1], 3));
     foreach (i; 0..3)
 	{
-        output[:, :, i] = convolve2d(array[:, :, i], kernel[:, :, i], mode = 'same', boundary = 'symm');
+        output[:, :, i] = convolve2d(array[:, :, i],
+									 kernel[:, :, i],
+									 mode = 'same',
+									 boundary = 'symm');
 	}
 
     return output;
