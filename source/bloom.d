@@ -20,7 +20,7 @@ airy_disk(double x)
 // generate a (2*size+1,2*size+1) convolution kernel with "radii" scale
 // where the function above is assumed to have "radius" one
 // scale is a 3-vector for RGB
-def
+double[][][3]
 generate_kernel(Vector3 scale, int size)
 {
     double[][] xs =
@@ -65,11 +65,26 @@ generate_kernel(Vector3 scale, int size)
 			foreach (int k, ref ele; col)
 				ele = airy_disk(afterDiv[i][j][k]);
 
-	auto kernelSum = kernel.sum(axis = (0, 1));
-	auto ksNewAxes = kernelSum[np.newaxis, np.newaxis, :];
-	kernel /= ksNewAxes
-	//normalization
-    //kernel /= kernel.sum(axis = (0, 1))[np.newaxis, np.newaxis, :];
+	double[3] kernelSum = [0.0, 0.0, 0.0];
+	foreach (block; kernel)
+	{
+		foreach (row; block)
+		{
+			kernelSum[0] += row[0];
+			kernelSum[1] += row[1];
+			kernelSum[2] += row[2];
+		}
+	}
+
+	foreach (ref block; kernel)
+	{
+		foreach (ref row; kernel)
+		{
+			row[0] /= kernelSum[0];
+			row[1] /= kernelSum[1];
+			row[2] /= kernelSum[2];
+		}
+	}
 
 	return kernel;
 }
