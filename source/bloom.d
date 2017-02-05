@@ -65,8 +65,11 @@ generate_kernel(Vector3 scale, int size)
 			foreach (int k, ref ele; col)
 				ele = airy_disk(afterDiv[i][j][k]);
 
+	auto kernelSum = kernel.sum(axis = (0, 1));
+	auto ksNewAxes = kernelSum[np.newaxis, np.newaxis, :];
+	kernel /= ksNewAxes
 	//normalization
-    kernel /= kernel.sum(axis = (0, 1))[np.newaxis, np.newaxis, :];
+    //kernel /= kernel.sum(axis = (0, 1))[np.newaxis, np.newaxis, :];
 
 	return kernel;
 }
