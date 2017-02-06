@@ -97,12 +97,18 @@ enum Vector3 SPECTRUM = Vector3(1.0, 0.86, 0.61);
 // convolve a 2D RGB array with three airy kernels with radius of
 // red channel = radius and the other two rescaled as of above
 // the kernel pixel size is fixed by kernel_radius
-def
-airy_convolve(array, radius, int kernel_radius = 25)
+double[][][3]
+airy_convolve(double[][][] array, double radius, int kernel_radius = 25)
 {
-    double[][][] kernel = generate_kernel(radius * SPECTRUM , kernel_radius);
+	Vector3 scale = Vector3(SPECTRUM.x * radius,
+							SPECTRUM.y * radius,
+							SPECTRUM.z * radius);
 
-    output = np.zeros((array.shape[0], array.shape[1], 3));
+    double[][][] kernel = generate_kernel(scale, kernel_radius);
+
+    //output = np.zeros((array.shape[0], array.shape[1], 3));
+	double[array.length][array[0].length][3] output;
+	
     foreach (i; 0..3)
 	{
         output[:, :, i] = convolve2d(array[:, :, i],

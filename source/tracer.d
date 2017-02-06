@@ -363,7 +363,7 @@ if texarr_disk is not None:
 
 
 			//defining texture lookup
-def lookup(texarr,uvarrin): #uvarrin is an array of uv coordinates
+def lookup(texarr,uvarrin): //uvarrin is an array of uv coordinates
     uvarr = np.clip(uvarrin,0.0,0.999)
 
     uvarr[:,0] *= float(texarr.shape[1])
