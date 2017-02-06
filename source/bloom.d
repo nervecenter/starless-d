@@ -38,24 +38,24 @@ generate_kernel(Vector3 scale, int size)
 			       .array)
 		.array;
 
-	double[][] r = xs.dup;
+	double[xs.length][xs[0].length] r;
 	foreach (int i, ref row; r)
 		foreach (int j, ref ele; row)
 			ele = sqrt(pow(xs[i][j], 2) + pow(ys[i][j], 2)) + 0.000001;
 
-	double[][][] r_newAxes;
+	/*double[][][] r_newAxes;
 	foreach (int i, row; r)
 		foreach (int j, ele; row)
-			r_newAxes[i][j] = [ele];
+		    r_newAxes[i][j] = [ele];*/
 
-	double[][][] afterDiv;
-	foreach (int i, row; r_newAxes)
+	double[r.length][r[0].length][3] afterDiv;
+	foreach (int i, row; r)
 	{
-		foreach (int j, col; row)
+		foreach (int j, ele; row)
 		{
-			afterDiv[i][j] ~= col[0] / scale.x;
-			afterDiv[i][j] ~= col[0] / scale.y;
-			afterDiv[i][j] ~= col[0] / scale.z;
+			afterDiv[i][j][0] = ele / scale.x;
+			afterDiv[i][j][1] = ele / scale.y;
+			afterDiv[i][j][2] = ele / scale.z;
 		}
 	}
 	
