@@ -206,6 +206,16 @@ void main(string[] args)
 		options.DISKINNER = geoconf["Diskinner"].str.parse!double();
 		options.DISKOUTER = geoconf["Diskouter"].str.parse!double();
 
+	}
+	catch (TOMLException e)
+	{
+		logger.debug("Error reading scene file: Insufficient data in geometry section");
+		logger.debug("Using defaults.");
+	}
+
+
+	try
+	{
 		//options for 'blackbody' disktexture
 		auto matconf = config["materials"];
 		options.DISK_MULTIPLIER = matconf["Diskmultiplier"].str.parse!double();
@@ -217,57 +227,54 @@ void main(string[] args)
 		options.NORMALIZE = matconf["Normalize"].str.parse!double();
 
 		options.BLOOMCUT = matconf["Bloomcut"].str.parse!double();
+		options.HORIZON_GRID = matconf["Horizongrid"].int;
+		options.DISK_TEXTURE = matconf["Disktexture"].str;
+		options.SKY_TEXTURE = matconf["Skytexture"].str;
+		options.SKYDISK_RATIO = matconf["Skydiskratio"].str.parse!double();
+		options.FOGDO = matconf["Fogdo"].int;
+		options.BLURDO = matconf["Blurdo"].int;
+		options.AIRY_BLOOM = matconf["Airy_bloom"].int;
+		options.AIRY_RADIUS = matconf["Airy_radius"].str.parse!double();
+		options.FOGMULT = matconf["Fogmult"].str.parse!double();
+		//perform linear rgb->srgb conversion
+		options.SRGBOUT = matconf["sRGBOut"].int;
+		options.SRGBIN = matconf["sRGBIn"].int;
 	}
 	catch (TOMLException e)
 	{
-		logger.debug("Error reading scene file: Insufficient data in geometry section");
+		logger.debug("Error reading scene file: Insufficient data in materials section");
 		logger.debug("Using defaults.");
 	}
 
 
-try:
-    HORIZON_GRID = int(cfp.get('materials','Horizongrid'))
-    DISK_TEXTURE = cfp.get('materials','Disktexture')
-    SKY_TEXTURE = cfp.get('materials','Skytexture')
-    SKYDISK_RATIO = float(cfp.get('materials','Skydiskratio'))
-    FOGDO = int(cfp.get('materials','Fogdo'))
-    BLURDO = int(cfp.get('materials','Blurdo'))
-    AIRY_BLOOM = int(cfp.get('materials','Airy_bloom'))
-    AIRY_RADIUS = float(cfp.get('materials','Airy_radius'))
-    FOGMULT = float(cfp.get('materials','Fogmult'))
+	// converting mode strings to mode ints
+	try
+	{
+		DISK_TEXTURE_INT = dt_dict[DISK_TEXTURE];
+	}
+	catch (KeyError e)
+	{
+		logger.debug("Error: %s is not a valid accretion disc rendering mode", DISK_TEXTURE);
+		return;
+	}
 
-		//perform linear rgb->srgb conversion
-    SRGBOUT = int(cfp.get('materials','sRGBOut'))
-    SRGBIN = int(cfp.get('materials','sRGBIn'))
-except (KeyError, configparser.NoSectionError):
-    logger.debug("error reading scene file: insufficient data in materials section")
-    logger.debug("using defaults.")
-
-
-		// converting mode strings to mode ints
-try:
-    DISK_TEXTURE_INT = dt_dict[DISK_TEXTURE]
-except KeyError:
-    logger.debug("Error: %s is not a valid accretion disc rendering mode", DISK_TEXTURE)
-    sys.exit(1)
-
-try:
-    SKY_TEXTURE_INT = dt_dict[SKY_TEXTURE]
-except KeyError:
-    logger.debug("Error: %s is not a valid sky rendering mode", SKY_TEXTURE)
-    sys.exit(1)
+	try
+	{
+		SKY_TEXTURE_INT = dt_dict[SKY_TEXTURE];
+	}
+	catch (KeyError e)
+	{
+		logger.debug("Error: %s is not a valid sky rendering mode", SKY_TEXTURE);
+		return;
+	}
 
 
-logger.debug("%dx%d", RESOLUTION[0], RESOLUTION[1])
+	logger.debug("%dx%d", options.RESOLUTION.w, options.RESOLUTION.h);
 
-		//just ensuring it's an np.array() and not a tuple/list
-CAMERA_POS = np.array(CAMERA_POS)
-
-
-		//ensure the observer's 4-velocity is timelike
-		//since as of now the observer is schwarzschild stationary, we just need to check
-		//whether he's outside the horizon.
-if np.linalg.norm(CAMERA_POS) <= 1.:
+	//ensure the observer's 4-velocity is timelike
+	//since as of now the observer is schwarzschild stationary, we just need to check
+	//whether he's outside the horizon.
+	if np.linalg.norm(CAMERA_POS) <= 1.:
     logger.debug("Error: the observer's 4-velocity is not timelike.")
     logger.debug("(try placing the observer outside the event horizon)")
     sys.exit(1)
