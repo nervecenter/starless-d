@@ -19,24 +19,14 @@ import gc
 import curses*/
 
 import std.file,
-	std.conv;
+	std.conv,
+	starless.types;
 
 enum Method { LEAPFROG, RK4 }
 
 enum ST { NONE, TEXTURE, FINAL }
 
 enum DT { NONE, TEXTURE, SOLID, GRID, BLACKBODY }
-
-struct Resolution
-{
-	int w = 800;
-	int h = 600;
-}
-
-struct Vector3
-{
-	double x, y, z;
-}
 
 struct Options {
 	bool LOFI = false;
