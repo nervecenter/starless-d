@@ -98,9 +98,9 @@ enum Vector3 SPECTRUM = Vector3(1.0, 0.86, 0.61);
 // red channel = radius and the other two rescaled as of above
 // the kernel pixel size is fixed by kernel_radius
 def
-airy_convolve(array, radius, kernel_radius = 25)
+airy_convolve(array, radius, int kernel_radius = 25)
 {
-    kernel = generate_kernel(radius * SPECTRUM , kernel_radius);
+    double[][][] kernel = generate_kernel(radius * SPECTRUM , kernel_radius);
 
     output = np.zeros((array.shape[0], array.shape[1], 3));
     foreach (i; 0..3)

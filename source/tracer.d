@@ -198,9 +198,9 @@ try:
     DISKINNER = float(cfp.get('geometry','Diskinner'))
     DISKOUTER = float(cfp.get('geometry','Diskouter'))
 
-    #options for 'blackbody' disktexture
+		//options for 'blackbody' disktexture
     DISK_MULTIPLIER = float(cfp.get('materials','Diskmultiplier'))
-    #DISK_ALPHA_MULTIPLIER = float(cfp.get('materials','Diskalphamultiplier'))
+		//DISK_ALPHA_MULTIPLIER = float(cfp.get('materials','Diskalphamultiplier'))
     DISK_INTENSITY_DO = int(cfp.get('materials','Diskintensitydo'))
     REDSHIFT = float(cfp.get('materials','Redshift'))
 
@@ -235,7 +235,7 @@ except (KeyError, configparser.NoSectionError):
     logger.debug("using defaults.")
 
 
-# converting mode strings to mode ints
+		// converting mode strings to mode ints
 try:
     DISK_TEXTURE_INT = dt_dict[DISK_TEXTURE]
 except KeyError:
@@ -251,13 +251,13 @@ except KeyError:
 
 logger.debug("%dx%d", RESOLUTION[0], RESOLUTION[1])
 
-#just ensuring it's an np.array() and not a tuple/list
+		//just ensuring it's an np.array() and not a tuple/list
 CAMERA_POS = np.array(CAMERA_POS)
 
 
-#ensure the observer's 4-velocity is timelike
-#since as of now the observer is schwarzschild stationary, we just need to check
-#whether he's outside the horizon.
+		//ensure the observer's 4-velocity is timelike
+		//since as of now the observer is schwarzschild stationary, we just need to check
+		//whether he's outside the horizon.
 if np.linalg.norm(CAMERA_POS) <= 1.:
     logger.debug("Error: the observer's 4-velocity is not timelike.")
     logger.debug("(try placing the observer outside the event horizon)")
@@ -267,11 +267,11 @@ if np.linalg.norm(CAMERA_POS) <= 1.:
 DISKINNERSQR = DISKINNER*DISKINNER
 DISKOUTERSQR = DISKOUTER*DISKOUTER
 
-#ensuring existence of tests directory
+		//ensuring existence of tests directory
 if not os.path.exists("tests"):
     os.makedirs("tests")
 
-#GRAPH
+		//GRAPH
 if DRAWGRAPH:
     logger.debug("Drawing schematic graph...")
     g_diskout       = plt.Circle((0,0),DISKOUTER, fc='0.75')
@@ -310,11 +310,11 @@ if DRAWGRAPH:
 
     ax.cla()
 
-# these need to be here
-# convert from linear rgb to srgb
+		// these need to be here
+		// convert from linear rgb to srgb
 def rgbtosrgb(arr):
     logger.debug("RGB -> sRGB...")
-    #see https://en.wikipedia.org/wiki/SRGB#Specification_of_the_transformation
+		//see https://en.wikipedia.org/wiki/SRGB#Specification_of_the_transformation
     mask = arr > 0.0031308
     arr[mask] **= 1/2.4
     arr[mask] *= 1.055
@@ -322,7 +322,7 @@ def rgbtosrgb(arr):
     arr[-mask] *= 12.92
 
 
-# convert from srgb to linear rgb
+		// convert from srgb to linear rgb
 def srgbtorgb(arr):
     logger.debug("sRGB -> RGB...")
     mask = arr > 0.04045
@@ -335,17 +335,17 @@ def srgbtorgb(arr):
 logger.debug("Loading textures...")
 if SKY_TEXTURE == 'texture':
     texarr_sky = spm.imread('textures/bgedit.jpg')
-    # must convert to float here so we can work in linear colour
+		// must convert to float here so we can work in linear colour
     texarr_sky = texarr_sky.astype(float)
     texarr_sky /= 255.0
     if SRGBIN:
-        # must do this before resizing to get correct results
+	// must do this before resizing to get correct results
         srgbtorgb(texarr_sky)
     if not LOFI:
-        #   maybe doing this manually and then loading is better.
+	//   maybe doing this manually and then loading is better.
         logger.debug("(zooming sky texture...)")
         texarr_sky = spm.imresize(texarr_sky,2.0,interp='bicubic')
-        # imresize converts back to uint8 for whatever reason
+			// imresize converts back to uint8 for whatever reason
         texarr_sky = texarr_sky.astype(float)
         texarr_sky /= 255.0
 
@@ -355,14 +355,14 @@ if DISK_TEXTURE == 'texture':
 if DISK_TEXTURE == 'test':
     texarr_disk = spm.imread('textures/adisktest.jpg')
 if texarr_disk is not None:
-    # must convert to float here so we can work in linear colour
+    // must convert to float here so we can work in linear colour
     texarr_disk = texarr_disk.astype(float)
     texarr_disk /= 255.0
     if SRGBIN:
         srgbtorgb(texarr_disk)
 
 
-#defining texture lookup
+			//defining texture lookup
 def lookup(texarr,uvarrin): #uvarrin is an array of uv coordinates
     uvarr = np.clip(uvarrin,0.0,0.999)
 
@@ -377,7 +377,7 @@ def lookup(texarr,uvarrin): #uvarrin is an array of uv coordinates
 
 logger.debug("Computing rotation matrix...")
 
-# this is just standard CGI vector algebra
+			// this is just standard CGI vector algebra
 
 FRONTVEC = (LOOKAT-CAMERA_POS)
 FRONTVEC = FRONTVEC / np.linalg.norm(FRONTVEC)
@@ -394,41 +394,42 @@ viewMatrix[:,1] = NUPVEC
 viewMatrix[:,2] = FRONTVEC
 
 
-#array [0,1,2,...,numPixels]
+			//array [0,1,2,...,numPixels]
 pixelindices = np.arange(0,RESOLUTION[0]*RESOLUTION[1],1)
 
-#total number of pixels
+			//total number of pixels
 numPixels = pixelindices.shape[0]
 
 logger.debug("Generated %d pixel flattened array.", numPixels)
 
-#useful constant arrays
+			//useful constant arrays
 ones = np.ones((numPixels))
 ones3 = np.ones((numPixels,3))
 UPFIELD = np.outer(ones,np.array([0.,1.,0.]))
 
-#random sample of floats
+			//random sample of floats
 ransample = np.random.random_sample((numPixels))
 
-def vec3a(vec): #returns a constant 3-vector array (don't use for varying vectors)
-    return np.outer(ones,vec)
+//returns a constant 3-vector array (don't use for varying vectors)
+def vec3a(vec):
+	return np.outer(ones,vec)
 
 def vec3(x,y,z):
     return vec3a(np.array([x,y,z]))
 
 def norm(vec):
-    # you might not believe it, but this is the fastest way of doing this
-    # there's a stackexchange answer about this
+    // you might not believe it, but this is the fastest way of doing this
+    // there's a stackexchange answer about this
     return np.sqrt(np.einsum('...i,...i',vec,vec))
 
 def normalize(vec):
-    #return vec/ (np.outer(norm(vec),np.array([1.,1.,1.])))
+    //return vec/ (np.outer(norm(vec),np.array([1.,1.,1.])))
     return vec / (norm(vec)[:,np.newaxis])
 
-# an efficient way of computing the sixth power of r
-# much faster than pow!
-# np has this optimization for power(a,2)
-# but not for power(a,3)!
+		// an efficient way of computing the sixth power of r
+		// much faster than pow!
+		// np has this optimization for power(a,2)
+		// but not for power(a,3)!
 
 def sqrnorm(vec):
     return np.einsum('...i,...i',vec,vec)
@@ -445,37 +446,37 @@ def RK4f(y,h2):
     return f
 
 
-# this blends colours ca and cb by placing ca in front of cb
+		// this blends colours ca and cb by placing ca in front of cb
 def blendcolors(cb,balpha,ca,aalpha):
             #* np.outer(aalpha, np.array([1.,1.,1.])) + \
-    #return  ca + cb * np.outer(balpha*(1.-aalpha),np.array([1.,1.,1.]))
+				//return  ca + cb * np.outer(balpha*(1.-aalpha),np.array([1.,1.,1.]))
     return  ca + cb * (balpha*(1.-aalpha))[:,np.newaxis]
 
 
-# this is for the final alpha channel after blending
+				// this is for the final alpha channel after blending
 def blendalpha(balpha,aalpha):
     return aalpha + balpha*(1.-aalpha)
 
 
 def saveToImg(arr,fname):
     logger.debug(" - saving %s...", fname)
-    #copy
+		//copy
     imgout = np.array(arr)
-    #clip
+		//clip
     imgout = np.clip(imgout,0.0,1.0)
-    #rgb->srgb
+		//rgb->srgb
     if SRGBOUT:
         rgbtosrgb(imgout)
-    #unflattening
+			//unflattening
     imgout = imgout.reshape((RESOLUTION[1],RESOLUTION[0],3))
     plt.imsave(fname,imgout)
 
-# this is not just for bool, also for floats (as grayscale)
+			// this is not just for bool, also for floats (as grayscale)
 def saveToImgBool(arr,fname):
     saveToImg(np.outer(arr,np.array([1.,1.,1.])),fname)
 
 
-#for shared arrays
+		//for shared arrays
 
 def tonumpyarray(mp_arr):
     a = np.frombuffer(mp_arr.get_obj(), dtype=np.float32)
@@ -485,11 +486,11 @@ def tonumpyarray(mp_arr):
 
 
 
-#PARTITIONING
+		//PARTITIONING
 
-#partition viewport in contiguous chunks
+		//partition viewport in contiguous chunks
 
-#CHUNKSIZE = 9000
+		//CHUNKSIZE = 9000
 if not DISABLE_SHUFFLING:
     np.random.shuffle(pixelindices)
 chunks = np.array_split(pixelindices,numPixels/CHUNKSIZE + 1)
@@ -501,7 +502,7 @@ logger.debug("Split into %d chunks of %d pixels each", NCHUNKS, chunks[0].shape[
 total_colour_buffer_preproc_shared = multi.Array(ctypes.c_float, numPixels * 3)
 total_colour_buffer_preproc = tonumpyarray(total_colour_buffer_preproc_shared)
 
-#open preview window
+		//open preview window
 
 if not DISABLE_DISPLAY:
     logger.debug("Opening display...")
@@ -511,16 +512,16 @@ if not DISABLE_DISPLAY:
     plt.draw()
 
 
-#shuffle chunk list (does very good for equalizing load)
+		//shuffle chunk list (does very good for equalizing load)
 
 random.shuffle(chunks)
 
 
-#partition chunk list in schedules for single threads
+		//partition chunk list in schedules for single threads
 
 schedules = []
 
-#from http://stackoverflow.com/questions/2659900/python-slicing-a-list-into-n-nearly-equal-length-partitions
+		//from http://stackoverflow.com/questions/2659900/python-slicing-a-list-into-n-nearly-equal-length-partitions
 q,r = divmod(NCHUNKS, NTHREADS)
 indices = [q*i + min(i,r) for i in range(NTHREADS+1)]
 
@@ -534,18 +535,18 @@ logger.debug("Split list into %d schedules with %s chunks each", NTHREADS, ", ".
 
 
 
-# global clock start
+		// global clock start
 start_time = time.time()
 
 itcounters = [0 for i in range(NTHREADS)]
 chnkcounters = [0 for i in range(NTHREADS)]
 
-#killers
+		//killers
 
 killers = [False for i in range(NTHREADS)]
 
 
-# command line output
+		// command line output
 
 class Outputter:
     def name(self,num):
@@ -582,7 +583,7 @@ class Outputter:
 
     def setmessage(self,mess,i):
         self.message[i] = mess.ljust(60)
-        #self.doprint()
+			//self.doprint()
 
     def __del__(self):
         try:
@@ -622,43 +623,43 @@ def showprogress(messtring,i,queue):
     queue.put((i,mes))
 
 
-#def showprogress(m,i):
-#    pass
+			//def showprogress(m,i):
+			//    pass
 
 def raytrace_schedule(i,schedule,total_shared,q): # this is the function running on each thread
-    #global schedules,itcounters,chnkcounters,killers
+			//global schedules,itcounters,chnkcounters,killers
 
     if len(schedule) == 0:
         return
 
     total_colour_buffer_preproc = tonumpyarray(total_shared)
 
-    #schedule = schedules[i]
+			//schedule = schedules[i]
 
     itcounters[i] = 0
     chnkcounters[i]= 0
 
     for chunk in schedule:
-        #if killers[i]:
-        #    break
+				  //if killers[i]:
+				  //    break
         chnkcounters[i]+=1
 
-        #number of chunk pixels
+			//number of chunk pixels
         numChunk = chunk.shape[0]
 
-        #useful constant arrays 
+			//useful constant arrays 
         ones = np.ones((numChunk))
         ones3 = np.ones((numChunk,3))
         UPFIELD = np.outer(ones,np.array([0.,1.,0.]))
         BLACK = np.outer(ones,np.array([0.,0.,0.]))
 
-        #arrays of integer pixel coordinates
+			//arrays of integer pixel coordinates
         x = chunk % RESOLUTION[0]
         y = chunk / RESOLUTION[0]
 
         showprogress("Generating view vectors...",i,q)
 
-        #the view vector in 3D space
+			//the view vector in 3D space
         view = np.zeros((numChunk,3))
 
         view[:,0] = x.astype(float)/RESOLUTION[0] - .5
@@ -668,11 +669,11 @@ def raytrace_schedule(i,schedule,total_shared,q): # this is the function running
         view[:,0]*=TANFOV
         view[:,1]*=TANFOV
 
-        #rotating through the view matrix
+			//rotating through the view matrix
 
         view = np.einsum('jk,ik->ij',viewMatrix,view)
 
-        #original position
+			//original position
         point = np.outer(ones, CAMERA_POS)
 
         normview = normalize(view)
@@ -680,12 +681,12 @@ def raytrace_schedule(i,schedule,total_shared,q): # this is the function running
         velocity = np.copy(normview)
 
 
-        # initializing the colour buffer
+			// initializing the colour buffer
         object_colour = np.zeros((numChunk,3))
         object_alpha = np.zeros(numChunk)
 
-        #squared angular momentum per unit mass (in the "Newtonian fantasy")
-        #h2 = np.outer(sqrnorm(np.cross(point,velocity)),np.array([1.,1.,1.]))
+			//squared angular momentum per unit mass (in the "Newtonian fantasy")
+			//h2 = np.outer(sqrnorm(np.cross(point,velocity)),np.array([1.,1.,1.]))
         h2 = sqrnorm(np.cross(point,velocity))[:,np.newaxis]
 
         pointsqr = np.copy(ones3)
@@ -698,24 +699,24 @@ def raytrace_schedule(i,schedule,total_shared,q): # this is the function running
                     break
                 showprogress("Raytracing...",i,q)
 
-            # STEPPING
+						// STEPPING
             oldpoint = np.copy(point) #not needed for tracing. Useful for intersections
 
             if METHOD == METH_LEAPFROG:
-                #leapfrog method here feels good
+	//leapfrog method here feels good
                 point += velocity * STEP
 
                 if DISTORT:
-                    #this is the magical - 3/2 r^(-5) potential...
+	//this is the magical - 3/2 r^(-5) potential...
                     accel = - 1.5 * h2 *  point / np.power(sqrnorm(point),2.5)[:,np.newaxis]
                     velocity += accel * STEP
 
             elif METHOD == METH_RK4:
                 if DISTORT:
-                    #simple step size control
+	//simple step size control
                     rkstep = STEP
 
-                    # standard Runge-Kutta
+						// standard Runge-Kutta
                     y = np.zeros((numChunk,6))
                     y[:,0:3] = point
                     y[:,3:6] = velocity
@@ -731,13 +732,13 @@ def raytrace_schedule(i,schedule,total_shared,q): # this is the function running
                 point += increment[:,0:3]
 
 
-            #useful precalcs
+						//useful precalcs
             pointsqr = sqrnorm(point)
-            #phi = np.arctan2(point[:,0],point[:,2])    #too heavy. Better an instance wherever it's needed.
-            #normvel = normalize(velocity)              #never used! BAD BAD BAD!!
+						//phi = np.arctan2(point[:,0],point[:,2])    #too heavy. Better an instance wherever it's needed.
+						//normvel = normalize(velocity)              #never used! BAD BAD BAD!!
 
 
-            # FOG
+						// FOG
 
             if FOGDO and (it%FOGSKIP == 0):
                 phsphtaper = np.clip(0.8*(pointsqr - 1.0),0.,1.0)
@@ -748,13 +749,13 @@ def raytrace_schedule(i,schedule,total_shared,q): # this is the function running
                 object_alpha = blendalpha(fogint, object_alpha)
 
 
-            # CHECK COLLISIONS
-            # accretion disk
+					// CHECK COLLISIONS
+					// accretion disk
 
             if DISK_TEXTURE_INT != DT_NONE:
 
                 mask_crossing = np.logical_xor( oldpoint[:,1] > 0., point[:,1] > 0.) #whether it just crossed the horizontal plane
-                mask_distance = np.logical_and((pointsqr < DISKOUTERSQR), (pointsqr > DISKINNERSQR))  #whether it's close enough
+					mask_distance = np.logical_and((pointsqr < DISKOUTERSQR), (pointsqr > DISKINNERSQR))  //whether it's close enough
 
                 diskmask = np.logical_and(mask_crossing,mask_distance)
 
@@ -831,7 +832,7 @@ def raytrace_schedule(i,schedule,total_shared,q): # this is the function running
 
 
 
-            # event horizon
+								// event horizon
             oldpointsqr = sqrnorm(oldpoint)
 
             mask_horizon = np.logical_and((pointsqr < 1),(sqrnorm(oldpoint) > 1) )
@@ -870,11 +871,11 @@ def raytrace_schedule(i,schedule,total_shared,q): # this is the function running
 
         showprogress("generating debug layers...",i,q)
 
-        ##debug color: direction of view vector
-        #dbg_viewvec = np.clip(view + vec3(.5,.5,0.0),0.0,1.0)
-        ##debug color: direction of final ray
-        ##debug color: grid
-        #dbg_grid = np.abs(normalize(velocity)) < 0.1
+        //debug color: direction of view vector
+        //dbg_viewvec = np.clip(view + vec3(.5,.5,0.0),0.0,1.0)
+        //debug color: direction of final ray
+        //debug color: grid
+        //dbg_grid = np.abs(normalize(velocity)) < 0.1
 
 
         if SKY_TEXTURE_INT == ST_TEXTURE:
@@ -893,26 +894,26 @@ def raytrace_schedule(i,schedule,total_shared,q): # this is the function running
         col_bg_and_obj = blendcolors(SKYDISK_RATIO*col_bg, ones ,object_colour,object_alpha)
 
         showprogress("beaming back to mothership.",i,q)
-        # copy back in the buffer
+				// copy back in the buffer
         if not DISABLE_SHUFFLING:
             total_colour_buffer_preproc[chunk] = col_bg_and_obj
         else:
             total_colour_buffer_preproc[chunk[0]:(chunk[-1]+1)] = col_bg_and_obj
 
 
-        #refresh display
-        # NO: plt does not allow drawing outside main thread
-        #if not DISABLE_DISPLAY:
-        #    showprogress("updating display...")
-        #    plt.imshow(total_colour_buffer_preproc.reshape((RESOLUTION[1],RESOLUTION[0],3)))
-        #    plt.draw()
+				//refresh display
+				// NO: plt does not allow drawing outside main thread
+				//if not DISABLE_DISPLAY:
+				//    showprogress("updating display...")
+				//    plt.imshow(total_colour_buffer_preproc.reshape((RESOLUTION[1],RESOLUTION[0],3)))
+				//    plt.draw()
 
         showprogress("garbage collection...",i,q)
         gc.collect()
 
     showprogress("Done.",i,q)
 
-# Threading
+				// Threading
 
 process_list = []
 for i in range(NTHREADS):
@@ -960,40 +961,40 @@ logger.debug("Total raytracing time: %s", datetime.timedelta(seconds=(time.time(
 
 logger.debug("Postprocessing...")
 
-#gain
+			//gain
 logger.debug("- gain...")
 total_colour_buffer_preproc *= GAIN
 
 
-# airy bloom
+			// airy bloom
 if AIRY_BLOOM:
 
     logger.debug("-computing Airy disk bloom...")
     
-    #blending bloom
+		//blending bloom
 
-    #colour = total_colour_buffer_preproc + 0.3*blurd #0.2*dbg_grid + 0.8*dbg_finvec
+		//colour = total_colour_buffer_preproc + 0.3*blurd #0.2*dbg_grid + 0.8*dbg_finvec
     
-    #airy disk bloom
+		//airy disk bloom
 
     colour_bloomd = np.copy(total_colour_buffer_preproc)
     colour_bloomd = colour_bloomd.reshape((RESOLUTION[1],RESOLUTION[0],3))
 
 
-    # the float constant is 1.22 * 650nm / (4 mm), the typical diffractive resolution
-    # of the human eye for red light. It's in radians, so we rescale using field of view.
+		// the float constant is 1.22 * 650nm / (4 mm), the typical diffractive resolution
+		// of the human eye for red light. It's in radians, so we rescale using field of view.
     radd = 0.00019825 * RESOLUTION[0] / np.arctan(TANFOV)
 
-    # the user is allowed to rescale the resolution, though
+		// the user is allowed to rescale the resolution, though
     radd*=AIRY_RADIUS 
 
-    # the pixel size of the kernel:
-    # 25 pixels radius is ok for 5.0 bright source pixel at 1920x1080, so...
-    # remembering that airy ~ 1/x^3, so if we want intensity/x^3 < hreshold => 
-    # => max_x = (intensity/threshold)^1/3
-    # so it scales with 
-    # - the cube root of maximum intensity
-    # - linear in resolution
+		// the pixel size of the kernel:
+		// 25 pixels radius is ok for 5.0 bright source pixel at 1920x1080, so...
+		// remembering that airy ~ 1/x^3, so if we want intensity/x^3 < hreshold => 
+		// => max_x = (intensity/threshold)^1/3
+		// so it scales with 
+		// - the cube root of maximum intensity
+		// - linear in resolution
 
     mxint = np.amax(colour_bloomd)
 
@@ -1011,13 +1012,13 @@ else:
     colour_pb = total_colour_buffer_preproc
 
 
-# wide gaussian (lighting dust effect)
+		// wide gaussian (lighting dust effect)
 
 if BLURDO:
 
     logger.debug("-computing wide gaussian blur...")
     
-    #hipass = np.outer(sqrnorm(total_colour_buffer_preproc) > BLOOMCUT, np.array([1.,1.,1.])) * total_colour_buffer_preproc
+		//hipass = np.outer(sqrnorm(total_colour_buffer_preproc) > BLOOMCUT, np.array([1.,1.,1.])) * total_colour_buffer_preproc
     blurd = np.copy(total_colour_buffer_preproc)
 
     blurd = blurd.reshape((RESOLUTION[1],RESOLUTION[0],3))
@@ -1033,7 +1034,7 @@ else:
 
 
 
-#normalization
+		//normalization
 if NORMALIZE > 0:
     logger.debug("- normalizing...")
     colour *= 1 / (NORMALIZE * np.amax(colour.flatten()) )
@@ -1041,7 +1042,7 @@ if NORMALIZE > 0:
 
 
 
-#final colour
+		//final colour
 colour = np.clip(colour,0.,1.)
 
 
