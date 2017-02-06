@@ -11,6 +11,7 @@ module starless.blackbody;
 import std.math,
     std.algorithm,
     std.conv,
+	starless.types,
     imaged.image;
 
 // Accretion disk log temperature profile (R^{-3/4})
@@ -50,14 +51,11 @@ intensity(double[] T)
     return T;
 }
 
-double[][] ramp;
+RGB[] ramp;
 
+// TODO: Make sure I'm loading just horizontal pixel data from colourtemp.jpg
 foreach (pix; load('data/colourtemp.jpg'))
-{
-    ramp ~= [pix.r / 255.0,
-             pix.g / 255.0,
-             pix.b / 255.0]
-}
+    ramp ~= pix / 255.0;
 
 enum rampsz = 3;
 
@@ -78,7 +76,7 @@ clip(double[] arr, double floor, double ceiling)
 }
 
 // Returns array of 3-element arrays of RGB values based on temperatures array given
-double[][]
+RGB[]
 colour(double[] T)
 {
     double[] Tp = T.map!(t => (t - 1000) / 29000.0 * rampsz).array;

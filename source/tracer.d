@@ -20,7 +20,8 @@ import curses*/
 
 import std.file,
 	std.conv,
-	starless.types;
+	starless.types,
+	toml.d;
 
 enum Method { LEAPFROG, RK4 }
 
@@ -54,35 +55,30 @@ void main(string[] args)
 	foreach (arg; args[1..$])
 	{
 		if (arg == "-d")
-		{
 			options.LOFI = true;
-		}
+
 		else if (arg == "--no-graph")
-		{
 			options.DRAWGRAPH = false;
-		}
+
 		else if (arg == "--no-display")
-		{
 			options.DISABLE_DISPLAY = true;
-		}
+
 		else if (arg == "--no-shuffle")
-		{
 			options.DISABLE_SHUFFLING = true;
-		}
+
 		else if ((arg == "-o") || (arg == "--no-bs"))
 		{
 			options.DRAWGRAPH = false;
 			options.DISABLE_DISPLAY = true;
 			options.DISABLE_SHUFFLING = true;
 		}
+
 		else if (arg[0..2] == "-c")
-		{
 			options.CHUNKSIZE = to!int(arg[2..$]);
-		}
+
 		else if (arg[0..2] == "-j")
-		{
 			options.NTHREADS = to!int(arg[2..$]);
-		}
+
 		else if (arg[0..2] == "-r")
 		{
 			int[] res = arg[2..$].split('x').map(n => to!int(n)).array;
@@ -95,14 +91,12 @@ void main(string[] args)
 			options.RESOLUTION = Resolution(res[0], res[1]);
 			options.OVERRIDE_RES = true;
 		}
+
 		else if (arg[0] == '-')
-		{
 			logger.error("Unrecognized option: %s", arg);
-		}
+
 		else
-		{
 			options.SCENE_FNAME = arg;
-		}
 	}
 
 	if (!exists(options.SCENE_FNAME))
@@ -112,40 +106,37 @@ void main(string[] args)
 	}
 
 
-defaults = {
-            "Distort":"1",
-            "Fogdo":"1",
-            "Blurdo":"1",
-            "Fogmult":"0.02",
-            "Diskinner":"1.5",
-            "Diskouter":"4",
-            "Resolution":"160,120",
-            "Diskmultiplier":"100.",
-            "Gain":"1",
-            "Normalize":"-1",
-            "Blurdo":"1",
-            "Bloomcut":"2.0",
-            "Airy_bloom":"1",
-            "Airy_radius":"1.",
-            "Iterations":"1000",
-            "Stepsize":"0.02",
-            "Cameraposition":"0.,1.,-10",
-            "Fieldofview":1.5,
-            "Lookat":"0.,0.,0.",
-            "Horizongrid":"1",
-            "Redshift":"1",
-            "sRGBOut":"1",
-            "Diskintensitydo":"1",
-            "sRGBIn":"1",
-            }
+	defaults = {
+		"Distort":"1",
+		"Fogdo":"1",
+		"Blurdo":"1",
+		"Fogmult":"0.02",
+		"Diskinner":"1.5",
+		"Diskouter":"4",
+		"Resolution":"160,120",
+		"Diskmultiplier":"100.",
+		"Gain":"1",
+		"Normalize":"-1",
+		"Blurdo":"1",
+		"Bloomcut":"2.0",
+		"Airy_bloom":"1",
+		"Airy_radius":"1.",
+		"Iterations":"1000",
+		"Stepsize":"0.02",
+		"Cameraposition":"0.,1.,-10",
+		"Fieldofview":1.5,
+		"Lookat":"0.,0.,0.",
+		"Horizongrid":"1",
+		"Redshift":"1",
+		"sRGBOut":"1",
+		"Diskintensitydo":"1",
+		"sRGBIn":"1",
+	};
 
-	cfp = configparser.ConfigParser(defaults);
-    logger.debug("Reading scene %s...", SCENE_FNAME);
-    cfp.read(SCENE_FNAME);
-
+	logger.debug("Reading scene %s...", SCENE_FNAME);
+	auto config = parseFile(SCENE_FNAME);
 
 	bool FOGSKIP = true;
-
 
 	Method METHOD = Method.RK4;
 
@@ -159,51 +150,79 @@ defaults = {
 	{
 		if (!options.OVERRIDE_RES)
 		{
-			RESOLUTION = [int(x) for x in cfp.get('lofi','Resolution').split(',')];
-			NITER = int(cfp.get('lofi','Iterations'));
-			STEP = float(cfp.get('lofi','Stepsize'));
+			auto loficonf = config["lofi"];
+			int[2] res =
+				loficonf["Resolution"].str.split(',')
+				.map(n => parse!int(n));
+			options.RESOLUTION = Resolution(res[0], res[1]);
+			options.NITER = config["lofi"]["Iterations"].int;
+			options.STEP = config["lofi"]["Stepsize"].str.parse!double();
 		}
 	}
-    catch (KeyError, configparser.NoSectionError)
+    catch (TOMLException e)
 	{
 		logger.debug("Error reading scene file: Insufficient data in \"lofi\" section");
 		logger.debug("Using defaults.");
 	}
 
-if not LOFI:
-    try:
-        if not OVERRIDE_RES:
-            RESOLUTION = [int(x) for x in cfp.get('hifi','Resolution').split(',')]
-        NITER = int(cfp.get('hifi','Iterations'))
-        STEP = float(cfp.get('hifi','Stepsize'))
-    except (KeyError, configparser.NoSectionError):
-        logger.debug("no data in hifi section. Using lofi/defaults.")
+	if (!options.LOFI)
+	{
+		try
+		{
+			if (!options.OVERRIDE_RES)
+			{
+				auto hificonf = config["hifi"];
+				int[2] res =
+					hificonf["Resolution"].str.split(',')
+					.map(n => parse!int(n));
+				options.RESOLUTION = Resolution(res[0], res[1]);
+				options.NITER = hificonf["Iterations"].int;
+				options.STEP = hificonf["Stepsize"].str.parse!double();
+			}
+		}
+		catch(TOMLException e)
+		{
+			logger.debug("No data in hifi section. Using lofi/defaults.");
+		}
+	}
 
-try:
-    CAMERA_POS = [float(x) for x in cfp.get('geometry','Cameraposition').split(',')]
-    TANFOV = float(cfp.get('geometry','Fieldofview'))
-    LOOKAT = np.array([float(x) for x in cfp.get('geometry','Lookat').split(',')])
-    UPVEC = np.array([float(x) for x in cfp.get('geometry','Upvector').split(',')])
-    DISTORT = int(cfp.get('geometry','Distort'))
-    DISKINNER = float(cfp.get('geometry','Diskinner'))
-    DISKOUTER = float(cfp.get('geometry','Diskouter'))
+	try
+	{
+		auto geoconf = config["geometry"];
+		double[3] cam =
+			geoconf["Cameraposition"].str.split(',')
+			.map(f => parse!double(f));
+		options.CAMERA_POS = Vector3(cam[0], cam[1], cam[2]);
+		options.TANFOV = geoconf["Fieldofview"].str.parse!double();
+		double[3] look =
+			geoconf["Lookat"].str.split(',')
+			.map(f => parse!double(f));
+		options.LOOKAT = Vector3(look[0], look[1], look[2]);
+		double[3] up =
+			geoconf["Upvector"].str.split(',')
+			.map(f => parse!double(f));
+		options.UPVEC = Vector3(up[0], up[1], up[2]);
+		options.DISTORT = geoconf["Distort"].int;
+		options.DISKINNER = geoconf["Diskinner"].str.parse!double();
+		options.DISKOUTER = geoconf["Diskouter"].str.parse!double();
 
 		//options for 'blackbody' disktexture
-    DISK_MULTIPLIER = float(cfp.get('materials','Diskmultiplier'))
+		auto matconf = config["materials"];
+		options.DISK_MULTIPLIER = matconf["Diskmultiplier"].str.parse!double();
 		//DISK_ALPHA_MULTIPLIER = float(cfp.get('materials','Diskalphamultiplier'))
-    DISK_INTENSITY_DO = int(cfp.get('materials','Diskintensitydo'))
-    REDSHIFT = float(cfp.get('materials','Redshift'))
+		options.DISK_INTENSITY_DO = matconf["Diskintensitydo"].int;
+		options.REDSHIFT = matconf["Redshift"].str.parse!double();
 
-    GAIN = float(cfp.get('materials','Gain'))
-    NORMALIZE = float(cfp.get('materials','Normalize'))
+		options.GAIN = matconf["Gain"].str.parse!double();
+		options.NORMALIZE = matconf["Normalize"].str.parse!double();
 
-    BLOOMCUT = float(cfp.get('materials','Bloomcut'))
-
-
-
-except (KeyError, configparser.NoSectionError):
-    logger.debug("error reading scene file: insufficient data in geometry section")
-    logger.debug("using defaults.")
+		options.BLOOMCUT = matconf["Bloomcut"].str.parse!double();
+	}
+	catch (TOMLException e)
+	{
+		logger.debug("Error reading scene file: Insufficient data in geometry section");
+		logger.debug("Using defaults.");
+	}
 
 
 try:
