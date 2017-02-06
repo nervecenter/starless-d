@@ -61,7 +61,7 @@ void main(string[] args)
 {
 	Options options = Options();
 	
-	foreach (arg; args)
+	foreach (arg; args[1..$])
 	{
 		if (arg == "-d")
 		{
