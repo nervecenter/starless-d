@@ -58,6 +58,11 @@ struct Options {
 	Resolution RESOLUTION;
 }
 
+double
+norm(Vector3 vec)
+	return sqrt(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
+
+
 void main(string[] args)
 {
 	Options options = Options();
@@ -202,19 +207,19 @@ void main(string[] args)
 		double[3] cam =
 			geoconf["Cameraposition"].str.split(',')
 			.map(f => parse!double(f));
-		options.CAMERA_POS = Vector3(cam[0], cam[1], cam[2]);
-		options.TANFOV = geoconf["Fieldofview"].str.parse!double();
+		options.geometry.CAMERA_POS = Vector3(cam[0], cam[1], cam[2]);
+		options.geometry.TANFOV = geoconf["Fieldofview"].str.parse!double();
 		double[3] look =
 			geoconf["Lookat"].str.split(',')
 			.map(f => parse!double(f));
-		options.LOOKAT = Vector3(look[0], look[1], look[2]);
+		options.geometry.LOOKAT = Vector3(look[0], look[1], look[2]);
 		double[3] up =
 			geoconf["Upvector"].str.split(',')
 			.map(f => parse!double(f));
-		options.UPVEC = Vector3(up[0], up[1], up[2]);
-		options.DISTORT = geoconf["Distort"].int;
-		options.DISKINNER = geoconf["Diskinner"].str.parse!double();
-		options.DISKOUTER = geoconf["Diskouter"].str.parse!double();
+		options.geometry.UPVEC = Vector3(up[0], up[1], up[2]);
+		options.geometry.DISTORT = geoconf["Distort"].int;
+		options.geometry.DISKINNER = geoconf["Diskinner"].str.parse!double();
+		options.geometry.DISKOUTER = geoconf["Diskouter"].str.parse!double();
 
 	}
 	catch (TOMLException e)
@@ -228,27 +233,27 @@ void main(string[] args)
 	{
 		//options for 'blackbody' disktexture
 		auto matconf = config["materials"];
-		options.DISK_MULTIPLIER = matconf["Diskmultiplier"].str.parse!double();
+		options.materials.DISK_MULTIPLIER = matconf["Diskmultiplier"].str.parse!double();
 		//DISK_ALPHA_MULTIPLIER = float(cfp.get('materials','Diskalphamultiplier'))
-		options.DISK_INTENSITY_DO = matconf["Diskintensitydo"].int;
-		options.REDSHIFT = matconf["Redshift"].str.parse!double();
+		options.materials.DISK_INTENSITY_DO = matconf["Diskintensitydo"].int;
+		options.materials.REDSHIFT = matconf["Redshift"].str.parse!double();
 
-		options.GAIN = matconf["Gain"].str.parse!double();
-		options.NORMALIZE = matconf["Normalize"].str.parse!double();
+		options.materials.GAIN = matconf["Gain"].str.parse!double();
+		options.materials.NORMALIZE = matconf["Normalize"].str.parse!double();
 
-		options.BLOOMCUT = matconf["Bloomcut"].str.parse!double();
-		options.HORIZON_GRID = matconf["Horizongrid"].int;
-		options.DISK_TEXTURE = matconf["Disktexture"].str;
-		options.SKY_TEXTURE = matconf["Skytexture"].str;
-		options.SKYDISK_RATIO = matconf["Skydiskratio"].str.parse!double();
-		options.FOGDO = matconf["Fogdo"].int;
-		options.BLURDO = matconf["Blurdo"].int;
-		options.AIRY_BLOOM = matconf["Airy_bloom"].int;
-		options.AIRY_RADIUS = matconf["Airy_radius"].str.parse!double();
-		options.FOGMULT = matconf["Fogmult"].str.parse!double();
+		options.materials.BLOOMCUT = matconf["Bloomcut"].str.parse!double();
+		options.materials.HORIZON_GRID = matconf["Horizongrid"].int;
+		options.materials.DISK_TEXTURE = matconf["Disktexture"].str;
+		options.materials.SKY_TEXTURE = matconf["Skytexture"].str;
+		options.materials.SKYDISK_RATIO = matconf["Skydiskratio"].str.parse!double();
+		options.materials.FOGDO = matconf["Fogdo"].int;
+		options.materials.BLURDO = matconf["Blurdo"].int;
+		options.materials.AIRY_BLOOM = matconf["Airy_bloom"].int;
+		options.materials.AIRY_RADIUS = matconf["Airy_radius"].str.parse!double();
+		options.materials.FOGMULT = matconf["Fogmult"].str.parse!double();
 		//perform linear rgb->srgb conversion
-		options.SRGBOUT = matconf["sRGBOut"].int;
-		options.SRGBIN = matconf["sRGBIn"].int;
+		options.materials.SRGBOUT = matconf["sRGBOut"].int;
+		options.materials.SRGBIN = matconf["sRGBIn"].int;
 	}
 	catch (TOMLException e)
 	{
@@ -260,7 +265,7 @@ void main(string[] args)
 	// converting mode strings to mode ints
 	try
 	{
-		DISK_TEXTURE_INT = dt_dict[DISK_TEXTURE];
+		options.materials.DISK_TEXTURE_INT = dt_dict[DISK_TEXTURE];
 	}
 	catch (KeyError e)
 	{
@@ -270,7 +275,7 @@ void main(string[] args)
 
 	try
 	{
-		SKY_TEXTURE_INT = dt_dict[SKY_TEXTURE];
+		options.materials.SKY_TEXTURE_INT = dt_dict[SKY_TEXTURE];
 	}
 	catch (KeyError e)
 	{
@@ -284,57 +289,71 @@ void main(string[] args)
 	//ensure the observer's 4-velocity is timelike
 	//since as of now the observer is schwarzschild stationary, we just need to check
 	//whether he's outside the horizon.
-	if np.linalg.norm(CAMERA_POS) <= 1.:
-    logger.debug("Error: the observer's 4-velocity is not timelike.")
-    logger.debug("(try placing the observer outside the event horizon)")
-    sys.exit(1)
+	if (norm(CAMERA_POS) <= 1.0)
+	{
+		logger.debug("Error: the observer's 4-velocity is not timelike.");
+		logger.debug("(Try placing the observer outside the event horizon)");
+		return;
+	}
 
 
-DISKINNERSQR = DISKINNER*DISKINNER
-DISKOUTERSQR = DISKOUTER*DISKOUTER
+	double DISKINNERSQR =
+		options.geometry.DISKINNER * options.geometry.DISKINNERDISKINNER;
+	double DISKOUTERSQR =
+		options.geometry.DISKOUTER * options.geometry.DISKOUTER;
 
-		//ensuring existence of tests directory
-if not os.path.exists("tests"):
-    os.makedirs("tests")
+	//ensuring existence of tests directory
+	if (!exists("tests"))
+		mkdir("tests");
 
-		//GRAPH
-if DRAWGRAPH:
-    logger.debug("Drawing schematic graph...")
-    g_diskout       = plt.Circle((0,0),DISKOUTER, fc='0.75')
-    g_diskin        = plt.Circle((0,0),DISKINNER, fc='white')
+	// TODO: Figure out a graphing library
+	//GRAPH
+	if (options.DRAWGRAPH)
+	{
+		logger.debug("Drawing schematic graph...");
+		auto gg = GGPlotD();
+		//plt.Circle(centerpt, radius, fc=facecolor)
+		gg = aes!("x", "y", "colour", 
+		g_diskout       = plt.Circle((0,0),DISKOUTER, fc='0.75');
 
-    g_photon        = plt.Circle((0,0),1.5,ec='y',fc='none')
-    g_horizon       = plt.Circle((0,0),1,color='black')
-    g_cameraball    = plt.Circle((CAMERA_POS[2],CAMERA_POS[0]),0.2,color='black')
+		g_diskin        = plt.Circle((0,0),DISKINNER, fc='white');
 
-    figure = plt.gcf()
+		
+		g_photon        = plt.Circle((0,0),1.5,ec='y',fc='none');
+		
+		g_horizon       = plt.Circle((0,0),1,color='black');
 
-    ax = plt.gca()
-    
-    ax.cla()
-    
-    gscale = 1.1*np.linalg.norm(CAMERA_POS)
-    ax.set_xlim((-gscale,gscale))
-    ax.set_ylim((-gscale,gscale))
-    ax.set_aspect('equal')
-
-    l = 100
-
-
-    ax.plot([CAMERA_POS[2],LOOKAT[2]] , [CAMERA_POS[0],LOOKAT[0]] , color='0.05', linestyle='-')
-    
- 
-    figure.gca().add_artist(g_diskout)
-    figure.gca().add_artist(g_diskin)
-    figure.gca().add_artist(g_horizon)
-    figure.gca().add_artist(g_photon)
-    figure.gca().add_artist(g_cameraball)
-
-
-    logger.debug("Saving diagram...")
-    figure.savefig('tests/graph.png')
-
-    ax.cla()
+		g_cameraball    = plt.Circle((CAMERA_POS[2],CAMERA_POS[0]),0.2,color='black');
+		
+		figure = plt.gcf();
+	
+		ax = plt.gca();
+		
+		ax.cla();
+		
+		double gscale = 1.1 * norm(CAMERA_POS);
+		ax.set_xlim((-gscale,gscale));
+		ax.set_ylim((-gscale,gscale));
+		ax.set_aspect('equal');
+		
+		l = 100;
+		
+		
+		ax.plot([CAMERA_POS[2],LOOKAT[2]] , [CAMERA_POS[0],LOOKAT[0]] , color='0.05', linestyle='-');
+		
+		
+		figure.gca().add_artist(g_diskout);
+		figure.gca().add_artist(g_diskin);
+		figure.gca().add_artist(g_horizon);
+		figure.gca().add_artist(g_photon);
+		figure.gca().add_artist(g_cameraball);
+		
+		
+		logger.debug("Saving diagram...");
+		figure.savefig('tests/graph.png');
+		
+		ax.cla();
+	}
 
 		// these need to be here
 		// convert from linear rgb to srgb
