@@ -27,7 +27,17 @@ enum Method { LEAPFROG, RK4 }
 
 enum ST { NONE, TEXTURE, FINAL }
 
+ST[string] st_dict = ["none"      : ST.NONE,
+					  "texture"   : ST.TEXTURE,
+					  "final"     : DT.FINAL];
+
 enum DT { NONE, TEXTURE, SOLID, GRID, BLACKBODY }
+
+DT[string] dt_dict = ["none"      : DT.NONE,
+					  "texture"   : DT.TEXTURE,
+					  "solid"     : DT.SOLID,
+					  "grid"      : DT.GRID,
+					  "blackbody" : DT.BLACKBODY];
 
 struct Options {
 	bool LOFI = false;
