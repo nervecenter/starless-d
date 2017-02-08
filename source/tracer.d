@@ -20,6 +20,7 @@ import curses*/
 
 import std.file,
 	std.conv,
+	core.stdc.math,
 	starless.types,
 	starless.logger,
 	ggplotd.aes,
@@ -266,7 +267,7 @@ void main(string[] args)
 	}
 	catch (TOMLException e)
 	{
-		logger.debug("Error reading scene file: Insufficient data in materials section");
+		logger.debug("Error reading scene file: Insufficient data in materials section.");
 		logger.debug("Using defaults.");
 	}
 
@@ -315,12 +316,12 @@ void main(string[] args)
 	if (!exists("tests"))
 		mkdir("tests");
 
-	// TODO: Figure out a graphing library
 	//GRAPH
 	if (options.DRAWGRAPH)
 	{
 		logger.debug("Drawing schematic graph...");
 		auto gg = GGPlotD();
+
 		//plt.Circle(centerpt, radius, fc=facecolor)
 		//g_diskout       = plt.Circle((0,0),DISKOUTER, fc='0.75');
 		gg = aes!("x", "y", "size", "colour")
@@ -349,25 +350,13 @@ void main(string[] args)
 		gg = aes!("x", "y", "size", "colour")
 			(cam_pos.x, cam_pos.z, 0.2, "black")
 			.geomEllipse().putIn(gg);
-
-		//get the figure
-		//figure = plt.gcf();
-
-		//get the axes
-		//ax = plt.gca();
-
-		//clear the axes
-		//ax.cla();
 		
 		double gscale = 1.1 * norm(cam_pos);
 		gg.put(xaxisRange(-gscale, gscale));
 		gg.put(yaxisRange(-gscale, gscale));
-		//ax.set_aspect('equal');
 		
-		//int l = 100;
-		
-		Vector3 lookat = options.geometry.LOOKAT;
 		// draw line from camera to lookat point
+		Vector3 lookat = options.geometry.LOOKAT;
 		auto aes =
 			Aes!(double[], "x", double[], "y", double, "colour")
 			([cam_pos.x, lookat.x], [cam_pos.z, lookat.z], 0.05);
@@ -380,17 +369,28 @@ void main(string[] args)
 		gg.save('tests/graph.png');
 	}
 
-		// these need to be here
-		// convert from linear rgb to srgb
-def rgbtosrgb(arr):
-    logger.debug("RGB -> sRGB...")
+	// these need to be here
+	// convert from linear rgb to srgb
+	def
+	rgbtosrgb(RGB[] arr)
+	{
+		logger.debug("RGB -> sRGB...");
+		foreach (ref pix; arr)
+		{
+			if (pix.r > 0.0031308)
+				pix.r = (core.std.math.pow(pix.r, (1.0 / 2.4)) * 1.055) - 0.055;
+			else
+				pix.r *= 12.92;
 		//see https://en.wikipedia.org/wiki/SRGB#Specification_of_the_transformation
-    mask = arr > 0.0031308
-    arr[mask] **= 1/2.4
-    arr[mask] *= 1.055
-    arr[mask] -= 0.055
-    arr[-mask] *= 12.92
-
+		mask = arr > 0.0031308; // Map each val in arr to the result
+		//arr[mask] is 1d array where all vals are those that made it into mask?
+		//val true in mask -> (core.std.math.pow(val, (1.0 / 2.4)) * 1.055) - 0.055
+		//val false in mask -> val *= 12.92
+		arr[mask] **= 1/2.4;
+		arr[mask] *= 1.055;
+		arr[mask] -= 0.055;
+		arr[-mask] *= 12.92;
+	}
 
 		// convert from srgb to linear rgb
 def srgbtorgb(arr):
