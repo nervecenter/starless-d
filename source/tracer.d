@@ -21,6 +21,10 @@ import curses*/
 import std.file,
 	std.conv,
 	starless.types,
+	starless.logger,
+	ggplotd.aes,
+	ggplotd.ggplotd,
+	ggplotd.geom,
 	toml.d;
 
 enum Method { LEAPFROG, RK4 }
@@ -65,6 +69,8 @@ norm(Vector3 vec)
 
 void main(string[] args)
 {
+	auto logger = new Logger();
+	
 	Options options = Options();
 	
 	foreach (arg; args[1..$])
@@ -99,26 +105,22 @@ void main(string[] args)
 			int[] res = arg[2..$].split('x').map(n => to!int(n)).array;
 			if (len(res) != 2)
 			{
-				logger.error("Error: Resolution \"%s\" unreadable", arg[2..$]);
-				logger.error("Please format resolution correctly (e.g.: -r640x480)");
-				return;
+				logger.error("Resolution \"" ~ arg[2..$] ~ "\" unreadable.\n"
+					~ "Please format resolution correctly (e.g.: -r640x480).");
 			}
 			options.RESOLUTION = Resolution(res[0], res[1]);
 			options.OVERRIDE_RES = true;
 		}
 
 		else if (arg[0] == '-')
-			logger.error("Unrecognized option: %s", arg);
+			logger.error("Unrecognized option: " ~ arg);
 
 		else
 			options.SCENE_FNAME = arg;
 	}
 
 	if (!exists(options.SCENE_FNAME))
-	{
-		logger.error("Scene file \"%s\" does not exist", options.SCENE_FNAME);
-		return;
-	}
+		logger.error("Scene file \"" ~ options.SCENE_FNAME ~ "\" does not exist");
 
 
 	defaults = {
@@ -204,23 +206,26 @@ void main(string[] args)
 	try
 	{
 		auto geoconf = config["geometry"];
+		Geometry geo;
+		
 		double[3] cam =
 			geoconf["Cameraposition"].str.split(',')
 			.map(f => parse!double(f));
-		options.geometry.CAMERA_POS = Vector3(cam[0], cam[1], cam[2]);
-		options.geometry.TANFOV = geoconf["Fieldofview"].str.parse!double();
+		geo.CAMERA_POS = Vector3(cam[0], cam[1], cam[2]);
+		geo.TANFOV = geoconf["Fieldofview"].str.parse!double();
 		double[3] look =
 			geoconf["Lookat"].str.split(',')
 			.map(f => parse!double(f));
-		options.geometry.LOOKAT = Vector3(look[0], look[1], look[2]);
+		geo.LOOKAT = Vector3(look[0], look[1], look[2]);
 		double[3] up =
 			geoconf["Upvector"].str.split(',')
 			.map(f => parse!double(f));
-		options.geometry.UPVEC = Vector3(up[0], up[1], up[2]);
-		options.geometry.DISTORT = geoconf["Distort"].int;
-		options.geometry.DISKINNER = geoconf["Diskinner"].str.parse!double();
-		options.geometry.DISKOUTER = geoconf["Diskouter"].str.parse!double();
+		geo.UPVEC = Vector3(up[0], up[1], up[2]);
+		geo.DISTORT = geoconf["Distort"].int;
+		geo.DISKINNER = geoconf["Diskinner"].str.parse!double();
+		geo.DISKOUTER = geoconf["Diskouter"].str.parse!double();
 
+		options.geometry = geo;
 	}
 	catch (TOMLException e)
 	{
@@ -233,27 +238,31 @@ void main(string[] args)
 	{
 		//options for 'blackbody' disktexture
 		auto matconf = config["materials"];
-		options.materials.DISK_MULTIPLIER = matconf["Diskmultiplier"].str.parse!double();
+		Materials mats;
+
+		mats.DISK_MULTIPLIER = matconf["Diskmultiplier"].str.parse!double();
 		//DISK_ALPHA_MULTIPLIER = float(cfp.get('materials','Diskalphamultiplier'))
-		options.materials.DISK_INTENSITY_DO = matconf["Diskintensitydo"].int;
-		options.materials.REDSHIFT = matconf["Redshift"].str.parse!double();
+		mats.DISK_INTENSITY_DO = matconf["Diskintensitydo"].int;
+		mats.REDSHIFT = matconf["Redshift"].str.parse!double();
 
-		options.materials.GAIN = matconf["Gain"].str.parse!double();
-		options.materials.NORMALIZE = matconf["Normalize"].str.parse!double();
+		mats.GAIN = matconf["Gain"].str.parse!double();
+		mats.NORMALIZE = matconf["Normalize"].str.parse!double();
 
-		options.materials.BLOOMCUT = matconf["Bloomcut"].str.parse!double();
-		options.materials.HORIZON_GRID = matconf["Horizongrid"].int;
-		options.materials.DISK_TEXTURE = matconf["Disktexture"].str;
-		options.materials.SKY_TEXTURE = matconf["Skytexture"].str;
-		options.materials.SKYDISK_RATIO = matconf["Skydiskratio"].str.parse!double();
-		options.materials.FOGDO = matconf["Fogdo"].int;
-		options.materials.BLURDO = matconf["Blurdo"].int;
-		options.materials.AIRY_BLOOM = matconf["Airy_bloom"].int;
-		options.materials.AIRY_RADIUS = matconf["Airy_radius"].str.parse!double();
-		options.materials.FOGMULT = matconf["Fogmult"].str.parse!double();
+		mats.BLOOMCUT = matconf["Bloomcut"].str.parse!double();
+		mats.HORIZON_GRID = matconf["Horizongrid"].int;
+		mats.DISK_TEXTURE = matconf["Disktexture"].str;
+		mats.SKY_TEXTURE = matconf["Skytexture"].str;
+		mats.SKYDISK_RATIO = matconf["Skydiskratio"].str.parse!double();
+		mats.FOGDO = matconf["Fogdo"].int;
+		mats.BLURDO = matconf["Blurdo"].int;
+		mats.AIRY_BLOOM = matconf["Airy_bloom"].int;
+		mats.AIRY_RADIUS = matconf["Airy_radius"].str.parse!double();
+		mats.FOGMULT = matconf["Fogmult"].str.parse!double();
 		//perform linear rgb->srgb conversion
-		options.materials.SRGBOUT = matconf["sRGBOut"].int;
-		options.materials.SRGBIN = matconf["sRGBIn"].int;
+		mats.SRGBOUT = matconf["sRGBOut"].int;
+		mats.SRGBIN = matconf["sRGBIn"].int;
+
+		options.materials = mats;
 	}
 	catch (TOMLException e)
 	{
@@ -289,7 +298,7 @@ void main(string[] args)
 	//ensure the observer's 4-velocity is timelike
 	//since as of now the observer is schwarzschild stationary, we just need to check
 	//whether he's outside the horizon.
-	if (norm(CAMERA_POS) <= 1.0)
+	if (norm(options.geometry.CAMERA_POS) <= 1.0)
 	{
 		logger.debug("Error: the observer's 4-velocity is not timelike.");
 		logger.debug("(Try placing the observer outside the event horizon)");
@@ -313,46 +322,62 @@ void main(string[] args)
 		logger.debug("Drawing schematic graph...");
 		auto gg = GGPlotD();
 		//plt.Circle(centerpt, radius, fc=facecolor)
-		gg = aes!("x", "y", "colour", 
-		g_diskout       = plt.Circle((0,0),DISKOUTER, fc='0.75');
+		//g_diskout       = plt.Circle((0,0),DISKOUTER, fc='0.75');
+		gg = aes!("x", "y", "size", "colour")
+			(0.0, 0.0, options.geometry.DISKOUTER, 0.75)
+			.geomEllipse().putIn(gg);
 
-		g_diskin        = plt.Circle((0,0),DISKINNER, fc='white');
+		//g_diskin        = plt.Circle((0,0),DISKINNER, fc='white');
+		gg = aes!("x", "y", "size", "colour")
+			(0.0, 0.0, options.geometry.DISKINNER, "white")
+			.geomEllipse().putIn(gg);
 
 		
-		g_photon        = plt.Circle((0,0),1.5,ec='y',fc='none');
-		
-		g_horizon       = plt.Circle((0,0),1,color='black');
+		//g_photon        = plt.Circle((0,0),1.5,ec='y',fc='none');
+		gg = aes!("x", "y", "size", "colour", "fill")
+			(0.0, 0.0, 1.5, "yellow", 0.0)
+			.geomEllipse().putIn(gg);
 
-		g_cameraball    = plt.Circle((CAMERA_POS[2],CAMERA_POS[0]),0.2,color='black');
+		//g_horizon       = plt.Circle((0,0),1,color='black');
+		gg = aes!("x", "y", "size", "colour")
+			(0.0, 0.0, 1.0, "black")
+			.geomEllipse().putIn(gg);
+
+		Vector3 cam_pos = options.geometry.CAMERA_POS;
 		
-		figure = plt.gcf();
-	
-		ax = plt.gca();
+		//g_cameraball    = plt.Circle((CAMERA_POS[2],CAMERA_POS[0]),0.2,color='black');
+		gg = aes!("x", "y", "size", "colour")
+			(cam_pos.x, cam_pos.z, 0.2, "black")
+			.geomEllipse().putIn(gg);
+
+		//get the figure
+		//figure = plt.gcf();
+
+		//get the axes
+		//ax = plt.gca();
+
+		//clear the axes
+		//ax.cla();
 		
-		ax.cla();
+		double gscale = 1.1 * norm(cam_pos);
+		gg.put(xaxisRange(-gscale, gscale));
+		gg.put(yaxisRange(-gscale, gscale));
+		//ax.set_aspect('equal');
 		
-		double gscale = 1.1 * norm(CAMERA_POS);
-		ax.set_xlim((-gscale,gscale));
-		ax.set_ylim((-gscale,gscale));
-		ax.set_aspect('equal');
+		//int l = 100;
 		
-		l = 100;
-		
-		
-		ax.plot([CAMERA_POS[2],LOOKAT[2]] , [CAMERA_POS[0],LOOKAT[0]] , color='0.05', linestyle='-');
-		
-		
-		figure.gca().add_artist(g_diskout);
-		figure.gca().add_artist(g_diskin);
-		figure.gca().add_artist(g_horizon);
-		figure.gca().add_artist(g_photon);
-		figure.gca().add_artist(g_cameraball);
-		
+		Vector3 lookat = options.geometry.LOOKAT;
+		// draw line from camera to lookat point
+		auto aes =
+			Aes!(double[], "x", double[], "y", double, "colour")
+			([cam_pos.x, lookat.x], [cam_pos.z, lookat.z], 0.05);
+		/*ax.plot([CAMERA_POS[2],LOOKAT[2]],
+				[CAMERA_POS[0],LOOKAT[0]],
+				color='0.05',
+				linestyle='-');*/
 		
 		logger.debug("Saving diagram...");
-		figure.savefig('tests/graph.png');
-		
-		ax.cla();
+		gg.save('tests/graph.png');
 	}
 
 		// these need to be here
@@ -388,7 +413,7 @@ if SKY_TEXTURE == 'texture':
         srgbtorgb(texarr_sky)
     if not LOFI:
 	//   maybe doing this manually and then loading is better.
-        logger.debug("(zooming sky texture...)")
+        logger.debug("(Zooming sky texture...)")
         texarr_sky = spm.imresize(texarr_sky,2.0,interp='bicubic')
 			// imresize converts back to uint8 for whatever reason
         texarr_sky = texarr_sky.astype(float)
