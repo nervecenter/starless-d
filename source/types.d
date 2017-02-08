@@ -9,6 +9,51 @@ struct Resolution
 struct Vector3
 {
 	double x, y, z;
+
+	Vector3 opUnary(string s)() if (s == "-")
+	{
+		return Vector3(-x, -y, -z);
+	}
+
+	Vector3 opBinary(string op)(Vector3 rhs)
+	{
+		static if (op == "+" || op == "-" || op == "*" || op == "/")
+			return mixin("Vector3(x "~op~" rhs.x, y "~op~" rhs.y, z "~op~" rhs.z)");
+		else
+			static assert(0, "Operator "~op~" not implemented for type 'Vector3'");
+	}
+
+	Vector3 opBinary(string op)(double rhs)
+	{
+		static if (op == "+" || op == "-" || op == "*" || op == "/")
+			return mixin("Vector3(x "~op~" rhs, y "~op~" rhs, z "~op~" rhs)");
+		else
+			static assert(0, "Operator "~op~" not implemented for type 'Vector3'");
+	}
+
+	Vector3 opBinaryRight(string op)(double lhs)
+	{
+		static if (op == "+" || op == "-" || op == "*" || op == "/")
+			return mixin("Vector3(x "~op~" lhs, y "~op~" lhs, z "~op~" lhs)");
+		else
+			static assert(0, "Operator "~op~" not implemented for type 'Vector3'");
+	}
+
+	void opOpAssign(string op)(Vector3 rhs)
+	{
+		static if (op == "+" || op == "-" || op == "*" || op == "/")
+			mixin("x = x "~op~" rhs.x; y = y "~op~" rhs.y; z = z "~op~" rhs.z;");
+		else
+			static assert(0, "Operator "~op~" not implemented for type 'Vector3'");
+	}
+
+	void opOpAssign(string op)(double rhs)
+	{
+		static if (op == "+" || op == "-" || op == "*" || op == "/")
+			mixin("x = x "~op~" rhs; y = y "~op~" rhs; z = z "~op~" rhs;");
+		else
+			static assert(0, "Operator "~op~" not implemented for type 'Vector3'");
+	}
 }
 
 struct RGB

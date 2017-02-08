@@ -493,10 +493,10 @@ def norm(vec):
     return np.sqrt(np.einsum('...i,...i',vec,vec))
 
 def normalize(vec):
-    //return vec/ (np.outer(norm(vec),np.array([1.,1.,1.])))
+    //Return vec/ (np.outer(norm(vec),np.array([1.,1.,1.])))
     return vec / (norm(vec)[:,np.newaxis])
 
-		// an efficient way of computing the sixth power of r
+		// An efficient way of computing the sixth power of r
 		// much faster than pow!
 		// np has this optimization for power(a,2)
 		// but not for power(a,3)!
