@@ -1,5 +1,7 @@
 module starless.types;
 
+import core.exception : RangeError;
+
 struct Resolution
 {
 	int w = 800;
@@ -54,6 +56,22 @@ struct Vector3
 		else
 			static assert(0, "Operator "~op~" not implemented for type 'Vector3'");
 	}
+
+	double opIndex(size_t index)
+	{
+		if (index == 0) return x;
+		else if (index == 1) return y;
+		else if (index == 2) return z;
+		else throw new RangeError("Type 'Vector3' is only indexed from 0 to 2.");
+	}
+
+	double opIndexAssign(double value, size_t index)
+	{
+		if (index == 0) return x = value;
+		else if (index == 1) return y = value;
+		else if (index == 2) return z = value;
+		else throw new RangeError("Type 'Vector3' is only indexed from 0 to 2.");
+	}
 }
 
 struct RGB
@@ -104,6 +122,22 @@ struct RGB
 		else
 			static assert(0, "Operator "~op~" not implemented for type 'RGB'");
 	}
+
+	double opIndex(size_t index)
+	{
+		if (index == 0) return r;
+		else if (index == 1) return g;
+		else if (index == 2) return b;
+		else throw new RangeError("Type 'RGB' is only indexed from 0 to 2.");
+	}
+
+	double opIndexAssign(double value, size_t index)
+	{
+		if (index == 0) return r = value;
+		else if (index == 1) return g = value;
+		else if (index == 2) return b = value;
+		else throw new RangeError("Type 'RGB' is only indexed from 0 to 2.");
+	}
 }
 
 debug
@@ -138,6 +172,13 @@ debug
 		color1 += color2;
 		color2 += adouble;
 		writeln(color1);
-		writeln(color2);
+		writeln(color2, "\n");
+
+		color1[1] = 325.0;
+		writeln(color1[1]);
+		writeln(color1);
+
+		foreach (val; color2)
+			writeln(val);
 	}
 }

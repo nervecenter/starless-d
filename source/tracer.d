@@ -124,7 +124,7 @@ void main(string[] args)
 		logger.error("Scene file \"" ~ options.SCENE_FNAME ~ "\" does not exist");
 
 
-	defaults = {
+	auto defaults = [
 		"Distort":"1",
 		"Fogdo":"1",
 		"Blurdo":"1",
@@ -149,7 +149,7 @@ void main(string[] args)
 		"sRGBOut":"1",
 		"Diskintensitydo":"1",
 		"sRGBIn":"1",
-	};
+	];
 
 	logger.debug("Reading scene %s...", SCENE_FNAME);
 	auto config = parseFile(SCENE_FNAME);
@@ -285,11 +285,13 @@ void main(string[] args)
 
 	try
 	{
-		options.materials.SKY_TEXTURE_INT = dt_dict[SKY_TEXTURE];
+		options.materials.SKY_TEXTURE_INT =
+			dt_dict[options.materialsSKY_TEXTURE];
 	}
 	catch (KeyError e)
 	{
-		logger.debug("Error: %s is not a valid sky rendering mode", SKY_TEXTURE);
+		logger.debug("Error: %s is not a valid sky rendering mode",
+					 options.materials.SKY_TEXTURE);
 		return;
 	}
 
@@ -371,53 +373,69 @@ void main(string[] args)
 
 	// these need to be here
 	// convert from linear rgb to srgb
-	def
+	void
 	rgbtosrgb(RGB[] arr)
 	{
+		//see https://en.wikipedia.org/wiki/SRGB#Specification_of_the_transformation
 		logger.debug("RGB -> sRGB...");
+
 		foreach (ref pix; arr)
 		{
-			if (pix.r > 0.0031308)
-				pix.r = (core.std.math.pow(pix.r, (1.0 / 2.4)) * 1.055) - 0.055;
-			else
-				pix.r *= 12.92;
-		//see https://en.wikipedia.org/wiki/SRGB#Specification_of_the_transformation
-		mask = arr > 0.0031308; // Map each val in arr to the result
-		//arr[mask] is 1d array where all vals are those that made it into mask?
-		//val true in mask -> (core.std.math.pow(val, (1.0 / 2.4)) * 1.055) - 0.055
-		//val false in mask -> val *= 12.92
-		arr[mask] **= 1/2.4;
-		arr[mask] *= 1.055;
-		arr[mask] -= 0.055;
-		arr[-mask] *= 12.92;
+			foreach (ref val; pix)
+			{
+				if (val > 0.0031308)
+					val = (core.std.math.pow(val, (1.0 / 2.4)) * 1.055) - 0.055;
+				else
+					val *= 12.92;
+			}
+		}
 	}
 
-		// convert from srgb to linear rgb
-def srgbtorgb(arr):
-    logger.debug("sRGB -> RGB...")
-    mask = arr > 0.04045
-    arr[mask] += 0.055
-    arr[mask] /= 1.055
-    arr[mask] **= 2.4
-    arr[-mask] /= 12.92
+	// convert from srgb to linear rgb
+	void
+	srgbtorgb(RGB[] arr)
+	{
+		logger.debug("sRGB -> RGB...");
 
+		foreach (ref pix; arr)
+		{
+			foreach (ref val; pix)
+			{
+				if (val > 0.04045)
+					val = core.std.math.pow(((val + 0.055) / 1.055), 2.4);
+				else
+					val /= 12.92;
+			}
+		}
+		mask = arr > 0.04045;
+		arr[mask] += 0.055;
+		arr[mask] /= 1.055;
+		arr[mask] **= 2.4;
+		arr[-mask] /= 12.92;
+	}
 
-logger.debug("Loading textures...")
-if SKY_TEXTURE == 'texture':
-    texarr_sky = spm.imread('textures/bgedit.jpg')
+	logger.debug("Loading textures...");
+	if (options.materials.SKY_TEXTURE == 'texture')
+	{
+		auto texarr_sky = spm.imread('textures/bgedit.jpg');
 		// must convert to float here so we can work in linear colour
-    texarr_sky = texarr_sky.astype(float)
-    texarr_sky /= 255.0
-    if SRGBIN:
-	// must do this before resizing to get correct results
-        srgbtorgb(texarr_sky)
-    if not LOFI:
-	//   maybe doing this manually and then loading is better.
-        logger.debug("(Zooming sky texture...)")
-        texarr_sky = spm.imresize(texarr_sky,2.0,interp='bicubic')
+		texarr_sky = texarr_sky.astype(float);
+		texarr_sky /= 255.0;
+
+		// must do this before resizing to get correct results
+		if (options.materials.SRGBIN)
+			srgbtorgb(texarr_sky);
+	
+		if (!options.LOFI)
+		{
+			//   maybe doing this manually and then loading is better.
+			logger.debug("(Zooming sky texture...)");
+			texarr_sky = spm.imresize(texarr_sky,2.0,interp='bicubic');
 			// imresize converts back to uint8 for whatever reason
-        texarr_sky = texarr_sky.astype(float)
-        texarr_sky /= 255.0
+			texarr_sky = texarr_sky.astype(float);
+			texarr_sky /= 255.0;
+		}
+	}
 
 texarr_disk = None
 if DISK_TEXTURE == 'texture':
