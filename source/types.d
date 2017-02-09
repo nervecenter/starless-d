@@ -72,6 +72,18 @@ struct Vector3
 		else if (index == 2) return z = value;
 		else throw new RangeError("Type 'Vector3' is only indexed from 0 to 2.");
 	}
+
+	int opApply(int delegate(ref const(double)) dg) const {
+		dg(x);
+		dg(y);
+		return dg(z);
+    }
+
+	int opApply(int delegate(int, const(double)) dg) const {
+		dg(0, x);
+		dg(1, y);
+		return dg(2, z);
+    }
 }
 
 struct RGB
@@ -138,6 +150,18 @@ struct RGB
 		else if (index == 2) return b = value;
 		else throw new RangeError("Type 'RGB' is only indexed from 0 to 2.");
 	}
+
+	int opApply(int delegate(ref const(double)) dg) const {
+		dg(r);
+		dg(g);
+		return dg(b);
+    }
+
+	int opApply(int delegate (int, const(double)) dg) const {
+		dg(0, r);
+		dg(1, g);
+		return dg(2, b);
+    }
 }
 
 debug
@@ -178,7 +202,10 @@ debug
 		writeln(color1[1]);
 		writeln(color1);
 
-		foreach (val; color2)
-			writeln(val);
+		foreach (i, val; color1)
+			writeln(i, ", ", val);
+
+		foreach (i, val; color2)
+			writeln(i, ", ", val);
 	}
 }
