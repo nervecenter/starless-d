@@ -407,11 +407,11 @@ void main(string[] args)
 					val /= 12.92;
 			}
 		}
-		mask = arr > 0.04045;
-		arr[mask] += 0.055;
-		arr[mask] /= 1.055;
-		arr[mask] **= 2.4;
-		arr[-mask] /= 12.92;
+		// mask = arr > 0.04045;
+		// arr[mask] += 0.055;
+		// arr[mask] /= 1.055;
+		// arr[mask] **= 2.4;
+		// arr[-mask] /= 12.92;
 	}
 
 	logger.debug("Loading textures...");
