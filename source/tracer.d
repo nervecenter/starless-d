@@ -154,7 +154,7 @@ void main(string[] args)
 	logger.debug("Reading scene %s...", SCENE_FNAME);
 	auto config = parseFile(SCENE_FNAME);
 
-	bool FOGSKIP = true;
+	int FOGSKIP = 1;
 
 	Method METHOD = Method.RK4;
 
