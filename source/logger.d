@@ -7,7 +7,8 @@ import std.format : format;
 
 class Logger
 {
-	File logfile;
+	private static File logfile;
+	private shared static Logger _instance;
 	
 	this()
 	{
@@ -16,9 +17,17 @@ class Logger
 		
 		logfile = File("logs/" ~ Clock.currTime().toSimpleString() ~ ".log", "w");
 	}
+
+	static @property ref shared(Logger) instance()
+	{
+		if (_instance is null)
+			_instance = new Logger();
+
+		return _instance;
+	}
 	
 	void
-	debug(Char, A...)(in Char[] fmt, A args)
+	log(Char, A...)(in Char[] fmt, A args)
 	{
 		string message = format(fmt, args);
 		writeln(message);

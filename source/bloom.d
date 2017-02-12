@@ -12,11 +12,15 @@ import std.math,
 // "airy disk" function (actually approximate, and a rescaling, but it's ok)
 double
 airy_disk(double x)
+{
     return pow(2.0 * j1(x) / (x), 2);
+}
 
 RGB
 airy_disk(RGB p)
+{
 	return RGB(airy_disk(p.r), airy_disk(p.g), airy_disk(p.b));
+}
 
 // generate a (2*size+1,2*size+1) convolution kernel with "radii" scale
 // where the function above is assumed to have "radius" one

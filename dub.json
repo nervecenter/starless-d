@@ -4,7 +4,6 @@
 		"Chris"
 	],
 	"dependencies": {
-		"toml-d": "~>0.3.0",
 		"imaged": "~>1.0.2",
 		"ggplotd": ">=0.4.5"
 	},

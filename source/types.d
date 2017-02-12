@@ -1,11 +1,21 @@
 module starless.types;
 
+import starless.logger;
 import core.exception : RangeError;
 
 struct Resolution
 {
-	int w = 800;
-	int h = 600;
+	int x = 800;
+	int y = 600;
+}
+
+Resolution
+toResolution(int[] ints)
+{
+	if (ints.length == 2)
+		return Resolution(ints[0], ints[1]);
+	else
+		throw Exception("Attempted to make a Resolution from non 2-element array.");
 }
 
 struct Vector3
@@ -62,7 +72,7 @@ struct Vector3
 		if (index == 0) return x;
 		else if (index == 1) return y;
 		else if (index == 2) return z;
-		else throw new RangeError("Type 'Vector3' is only indexed from 0 to 2.");
+		else throw new RangeError("Type 'Vector3' only has 3 elements indexed from 0 to 2.");
 	}
 
 	double opIndexAssign(double value, size_t index)
@@ -70,7 +80,7 @@ struct Vector3
 		if (index == 0) return x = value;
 		else if (index == 1) return y = value;
 		else if (index == 2) return z = value;
-		else throw new RangeError("Type 'Vector3' is only indexed from 0 to 2.");
+		else throw new RangeError("Type 'Vector3' only has 3 elements indexed from 0 to 2.");
 	}
 
 	int opApply(int delegate(ref const(double)) dg) const {
@@ -84,6 +94,15 @@ struct Vector3
 		dg(1, y);
 		return dg(2, z);
     }
+}
+
+Vector3
+toVector(double[] floats)
+{
+	if (floats.length == 3)
+		return Vector3(floats[0], floats[1], floats[2]);
+	else
+		throw Exception("Attempted to make a Vector3 from non 3-element array.");
 }
 
 struct RGB
@@ -140,7 +159,7 @@ struct RGB
 		if (index == 0) return r;
 		else if (index == 1) return g;
 		else if (index == 2) return b;
-		else throw new RangeError("Type 'RGB' is only indexed from 0 to 2.");
+		else throw new RangeError("Type 'RGB' only has 3 elements indexed from 0 to 2.");
 	}
 
 	double opIndexAssign(double value, size_t index)
@@ -148,7 +167,7 @@ struct RGB
 		if (index == 0) return r = value;
 		else if (index == 1) return g = value;
 		else if (index == 2) return b = value;
-		else throw new RangeError("Type 'RGB' is only indexed from 0 to 2.");
+		else throw new RangeError("Type 'RGB' only has 3 elements indexed from 0 to 2.");
 	}
 
 	int opApply(int delegate(ref const(double)) dg) const {

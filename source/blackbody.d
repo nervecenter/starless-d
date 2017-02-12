@@ -45,17 +45,22 @@ intensity(double[] T)
     {
         if (t < 1.0)
             t = 1.0;
-        t = 1.0 / (exp(29622.4 / t) - 1)
+        t = 1.0 / (exp(29622.4 / t) - 1);
     }
     
     return T;
 }
 
-RGB[] ramp;
+RGB[]
+getRamp()
+{
+	RGB[] ramp;
+	// TODO: Make sure I'm loading just horizontal pixel data from colourtemp.jpg
+	foreach (pix; load("data/colourtemp.jpg"))
+		ramp ~= pix / 255.0;
 
-// TODO: Make sure I'm loading just horizontal pixel data from colourtemp.jpg
-foreach (pix; load('data/colourtemp.jpg'))
-    ramp ~= pix / 255.0;
+	return ramp;
+}
 
 enum rampsz = 3;
 
@@ -82,6 +87,8 @@ colour(double[] T)
     double[] Tp = T.map!(t => (t - 1000) / 29000.0 * rampsz).array;
     double[] indices = clip(Tp, 0.0, rampsz - 1.0001);
     int[] indicesInt = indices.map!(i => to!int(i)).array;
+
+	RGB[] ramp = getRamp();
 
     return indicesInt.map!(i => ramp[i]).array;
 }

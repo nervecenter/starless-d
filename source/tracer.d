@@ -20,143 +20,83 @@ import curses*/
 
 import std.file,
 	std.conv,
+	std.json,
 	core.stdc.math,
 	starless.types,
+	starless.options,
 	starless.logger,
 	ggplotd.aes,
 	ggplotd.ggplotd,
-	ggplotd.geom,
-	toml.d;
-
-enum Method { LEAPFROG, RK4 }
-
-enum ST { NONE, TEXTURE, FINAL }
-
-ST[string] st_dict = ["none"      : ST.NONE,
-					  "texture"   : ST.TEXTURE,
-					  "final"     : DT.FINAL];
-
-enum DT { NONE, TEXTURE, SOLID, GRID, BLACKBODY }
-
-DT[string] dt_dict = ["none"      : DT.NONE,
-					  "texture"   : DT.TEXTURE,
-					  "solid"     : DT.SOLID,
-					  "grid"      : DT.GRID,
-					  "blackbody" : DT.BLACKBODY];
-
-struct Options {
-	bool LOFI = false;
-
-	bool DISABLE_DISPLAY = false;
-	bool DISABLE_SHUFFLING = false;
-
-	int NTHREADS = 4;
-
-	bool DRAWGRAPH = true;
-
-	bool OVERRIDE_RES = false;
-
-	string SCENE_FNAME = "scenes/default.scene";
-
-	int CHUNKSIZE = 9000;
-
-	Resolution RESOLUTION;
-}
+	ggplotd.geom;
 
 double
 norm(Vector3 vec)
+{
 	return sqrt(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
-
+}
 
 void main(string[] args)
 {
-	auto logger = new Logger();
+	auto logger = Logger.instance;
 	
-	Options options = Options();
+	Options options;
 	
 	foreach (arg; args[1..$])
 	{
 		if (arg == "-d")
-			options.LOFI = true;
+			options.lofi = true;
 
 		else if (arg == "--no-graph")
-			options.DRAWGRAPH = false;
+			options.drawGraph = false;
 
 		else if (arg == "--no-display")
-			options.DISABLE_DISPLAY = true;
+			options.disableDisplay = true;
 
 		else if (arg == "--no-shuffle")
-			options.DISABLE_SHUFFLING = true;
+			options.disableShuffling = true;
 
 		else if ((arg == "-o") || (arg == "--no-bs"))
 		{
-			options.DRAWGRAPH = false;
-			options.DISABLE_DISPLAY = true;
-			options.DISABLE_SHUFFLING = true;
+			options.drawGraph = false;
+			options.disableDisplay = true;
+			options.disableShuffling = true;
 		}
 
 		else if (arg[0..2] == "-c")
-			options.CHUNKSIZE = to!int(arg[2..$]);
+			options.chunkSize = to!int(arg[2..$]);
 
 		else if (arg[0..2] == "-j")
-			options.NTHREADS = to!int(arg[2..$]);
+			options.nThreads = to!int(arg[2..$]);
 
 		else if (arg[0..2] == "-r")
 		{
-			int[] res = arg[2..$].split('x').map(n => to!int(n)).array;
+			int[] res = arg[2..$].split('x').map(n => parse!int(n)).array;
 			if (len(res) != 2)
 			{
 				logger.error("Resolution \"" ~ arg[2..$] ~ "\" unreadable.\n"
 					~ "Please format resolution correctly (e.g.: -r640x480).");
 			}
-			options.RESOLUTION = Resolution(res[0], res[1]);
-			options.OVERRIDE_RES = true;
+			options.resolution = res.toResolution();
+			options.overrideRes = true;
 		}
 
 		else if (arg[0] == '-')
 			logger.error("Unrecognized option: " ~ arg);
 
 		else
-			options.SCENE_FNAME = arg;
+			options.sceneFname = arg;
 	}
 
-	if (!exists(options.SCENE_FNAME))
-		logger.error("Scene file \"" ~ options.SCENE_FNAME ~ "\" does not exist");
+	if (!exists(options.sceneFname))
+		logger.error("Scene file \"" ~ options.sceneFname ~ "\" does not exist");
 
 
-	auto defaults = [
-		"Distort":"1",
-		"Fogdo":"1",
-		"Blurdo":"1",
-		"Fogmult":"0.02",
-		"Diskinner":"1.5",
-		"Diskouter":"4",
-		"Resolution":"160,120",
-		"Diskmultiplier":"100.",
-		"Gain":"1",
-		"Normalize":"-1",
-		"Blurdo":"1",
-		"Bloomcut":"2.0",
-		"Airy_bloom":"1",
-		"Airy_radius":"1.",
-		"Iterations":"1000",
-		"Stepsize":"0.02",
-		"Cameraposition":"0.,1.,-10",
-		"Fieldofview":1.5,
-		"Lookat":"0.,0.,0.",
-		"Horizongrid":"1",
-		"Redshift":"1",
-		"sRGBOut":"1",
-		"Diskintensitydo":"1",
-		"sRGBIn":"1",
-	];
+	logger.log("Reading scene %s...", sceneFname);
+	auto config = parseJSON(File(sceneFname, "r"));
 
-	logger.debug("Reading scene %s...", SCENE_FNAME);
-	auto config = parseFile(SCENE_FNAME);
+	int fogSkip = 1;
 
-	int FOGSKIP = 1;
-
-	Method METHOD = Method.RK4;
+	Method method = Method.RK4;
 
 	//enums to avoid per-iteration string comparisons
 
@@ -166,41 +106,39 @@ void main(string[] args)
 	//must rewrite
 	try
 	{
-		if (!options.OVERRIDE_RES)
+		if (!options.overrideRes)
 		{
 			auto loficonf = config["lofi"];
-			int[2] res =
-				loficonf["Resolution"].str.split(',')
-				.map(n => parse!int(n));
-			options.RESOLUTION = Resolution(res[0], res[1]);
-			options.NITER = config["lofi"]["Iterations"].int;
-			options.STEP = config["lofi"]["Stepsize"].str.parse!double();
+			options.resolution =
+				loficonf["Resolution"].array
+				.map(n => n.integer).toResolution();
+			options.NITER = loficonf["Iterations"].integer;
+			options.STEP = loficonf["Stepsize"].floating;
 		}
 	}
-    catch (TOMLException e)
+    catch (JSONException e)
 	{
-		logger.debug("Error reading scene file: Insufficient data in \"lofi\" section");
-		logger.debug("Using defaults.");
+		logger.log("Error reading scene file: Insufficient data in \"lofi\" section");
+		logger.log("Using defaults.");
 	}
 
 	if (!options.LOFI)
 	{
 		try
 		{
-			if (!options.OVERRIDE_RES)
+			if (!options.overrideRes)
 			{
 				auto hificonf = config["hifi"];
-				int[2] res =
-					hificonf["Resolution"].str.split(',')
-					.map(n => parse!int(n));
-				options.RESOLUTION = Resolution(res[0], res[1]);
-				options.NITER = hificonf["Iterations"].int;
-				options.STEP = hificonf["Stepsize"].str.parse!double();
+				options.resolution =
+					hificonf["Resolution"].array
+					.map(n => n.integer).toResolution();
+				options.iterations = hificonf["Iterations"].integer;
+				options.stepSize = hificonf["Stepsize"].floating;
 			}
 		}
-		catch(TOMLException e)
+		catch(JSONException e)
 		{
-			logger.debug("No data in hifi section. Using lofi/defaults.");
+			logger.log("No data in hifi section. Using lofi/defaults.");
 		}
 	}
 
@@ -209,31 +147,27 @@ void main(string[] args)
 		auto geoconf = config["geometry"];
 		Geometry geo;
 		
-		double[3] cam =
-			geoconf["Cameraposition"].str.split(',')
-			.map(f => parse!double(f));
-		geo.CAMERA_POS = Vector3(cam[0], cam[1], cam[2]);
-		geo.TANFOV = geoconf["Fieldofview"].str.parse!double();
-		double[3] look =
-			geoconf["Lookat"].str.split(',')
-			.map(f => parse!double(f));
-		geo.LOOKAT = Vector3(look[0], look[1], look[2]);
-		double[3] up =
-			geoconf["Upvector"].str.split(',')
-			.map(f => parse!double(f));
-		geo.UPVEC = Vector3(up[0], up[1], up[2]);
-		geo.DISTORT = geoconf["Distort"].int;
-		geo.DISKINNER = geoconf["Diskinner"].str.parse!double();
-		geo.DISKOUTER = geoconf["Diskouter"].str.parse!double();
+		geo.cameraPos =
+			geoconf["Cameraposition"].array
+			.map(f => f.floating).toVector3();
+		geo.tanFieldOfView = geoconf["Fieldofview"].floating;
+		geo.lookAt =
+			geoconf["Lookat"].array
+			.map(f => f.floating).toVector3();
+		geo.upVector =
+			geoconf["Upvector"].array
+			.map(f => f.floating).toVector3();
+		geo.distort = geoconf["Distort"].integer;
+		geo.diskInner = geoconf["Diskinner"].floating;
+		geo.diskOuter = geoconf["Diskouter"].floating;
 
 		options.geometry = geo;
 	}
-	catch (TOMLException e)
+	catch (JSONException e)
 	{
-		logger.debug("Error reading scene file: Insufficient data in geometry section");
-		logger.debug("Using defaults.");
+		logger.log("Error reading scene file: Insufficient data in geometry section");
+		logger.log("Using defaults.");
 	}
-
 
 	try
 	{
@@ -241,34 +175,34 @@ void main(string[] args)
 		auto matconf = config["materials"];
 		Materials mats;
 
-		mats.DISK_MULTIPLIER = matconf["Diskmultiplier"].str.parse!double();
+		mats.diskMultiplier = matconf["Diskmultiplier"].floating;
 		//DISK_ALPHA_MULTIPLIER = float(cfp.get('materials','Diskalphamultiplier'))
-		mats.DISK_INTENSITY_DO = matconf["Diskintensitydo"].int;
-		mats.REDSHIFT = matconf["Redshift"].str.parse!double();
+		mats.diskIntensityDo = matconf["Diskintensitydo"].integer;
+		mats.redShift = matconf["Redshift"].floating;
 
-		mats.GAIN = matconf["Gain"].str.parse!double();
-		mats.NORMALIZE = matconf["Normalize"].str.parse!double();
+		mats.gain = matconf["Gain"].floating;
+		mats.normalize = matconf["Normalize"].floating;
 
-		mats.BLOOMCUT = matconf["Bloomcut"].str.parse!double();
-		mats.HORIZON_GRID = matconf["Horizongrid"].int;
-		mats.DISK_TEXTURE = matconf["Disktexture"].str;
-		mats.SKY_TEXTURE = matconf["Skytexture"].str;
-		mats.SKYDISK_RATIO = matconf["Skydiskratio"].str.parse!double();
-		mats.FOGDO = matconf["Fogdo"].int;
-		mats.BLURDO = matconf["Blurdo"].int;
-		mats.AIRY_BLOOM = matconf["Airy_bloom"].int;
-		mats.AIRY_RADIUS = matconf["Airy_radius"].str.parse!double();
-		mats.FOGMULT = matconf["Fogmult"].str.parse!double();
+		mats.bloomCut = matconf["Bloomcut"].floating;
+		mats.horizonGrid = matconf["Horizongrid"].integer;
+		mats.diskTexture = dt_dict[matconf["Disktexture"].str];
+		mats.skyTexture = st_dict[matconf["Skytexture"].str];
+		mats.skyDiskRatio = matconf["Skydiskratio"].floating;
+		mats.fogDo = matconf["Fogdo"].integer;
+		mats.blurDo = matconf["Blurdo"].integer;
+		mats.airyBloom = matconf["Airy_bloom"].integer;
+		mats.airyRadius = matconf["Airy_radius"].floating;
+		mats.fogMult = matconf["Fogmult"].floating;
 		//perform linear rgb->srgb conversion
-		mats.SRGBOUT = matconf["sRGBOut"].int;
-		mats.SRGBIN = matconf["sRGBIn"].int;
+		mats.sRGBOut = matconf["sRGBOut"].integer;
+		mats.sRGBIn = matconf["sRGBIn"].integer;
 
 		options.materials = mats;
 	}
-	catch (TOMLException e)
+	catch (JSONException e)
 	{
-		logger.debug("Error reading scene file: Insufficient data in materials section.");
-		logger.debug("Using defaults.");
+		logger.log("Error reading scene file: Insufficient data in materials section.");
+		logger.log("Using defaults.");
 	}
 
 
@@ -279,7 +213,7 @@ void main(string[] args)
 	}
 	catch (KeyError e)
 	{
-		logger.debug("Error: %s is not a valid accretion disc rendering mode", DISK_TEXTURE);
+		logger.log("Error: %s is not a valid accretion disc rendering mode", DISK_TEXTURE);
 		return;
 	}
 
@@ -290,21 +224,21 @@ void main(string[] args)
 	}
 	catch (KeyError e)
 	{
-		logger.debug("Error: %s is not a valid sky rendering mode",
+		logger.log("Error: %s is not a valid sky rendering mode",
 					 options.materials.SKY_TEXTURE);
 		return;
 	}
 
 
-	logger.debug("%dx%d", options.RESOLUTION.w, options.RESOLUTION.h);
+	logger.log("%dx%d", options.resolution.x, options.resolution.y);
 
 	//ensure the observer's 4-velocity is timelike
 	//since as of now the observer is schwarzschild stationary, we just need to check
 	//whether he's outside the horizon.
 	if (norm(options.geometry.CAMERA_POS) <= 1.0)
 	{
-		logger.debug("Error: the observer's 4-velocity is not timelike.");
-		logger.debug("(Try placing the observer outside the event horizon)");
+		logger.log("Error: the observer's 4-velocity is not timelike.");
+		logger.log("(Try placing the observer outside the event horizon)");
 		return;
 	}
 
@@ -321,7 +255,7 @@ void main(string[] args)
 	//GRAPH
 	if (options.DRAWGRAPH)
 	{
-		logger.debug("Drawing schematic graph...");
+		logger.log("Drawing schematic graph...");
 		auto gg = GGPlotD();
 
 		//plt.Circle(centerpt, radius, fc=facecolor)
@@ -367,9 +301,10 @@ void main(string[] args)
 				color='0.05',
 				linestyle='-');*/
 		
-		logger.debug("Saving diagram...");
-		gg.save('tests/graph.png');
+		logger.log("Saving diagram...");
+		gg.save("tests/graph.png");
 	}
+}
 
 	// these need to be here
 	// convert from linear rgb to srgb
@@ -377,7 +312,7 @@ void main(string[] args)
 	rgbtosrgb(RGB[] arr)
 	{
 		//see https://en.wikipedia.org/wiki/SRGB#Specification_of_the_transformation
-		logger.debug("RGB -> sRGB...");
+		logger.log("RGB -> sRGB...");
 
 		foreach (ref pix; arr)
 		{
@@ -395,7 +330,7 @@ void main(string[] args)
 	void
 	srgbtorgb(RGB[] arr)
 	{
-		logger.debug("sRGB -> RGB...");
+		logger.log("sRGB -> RGB...");
 
 		foreach (ref pix; arr)
 		{
@@ -414,7 +349,7 @@ void main(string[] args)
 		// arr[-mask] /= 12.92;
 	}
 
-	logger.debug("Loading textures...");
+	logger.log("Loading textures...");
 	if (options.materials.SKY_TEXTURE == 'texture')
 	{
 		auto texarr_sky = spm.imread('textures/bgedit.jpg');
@@ -429,7 +364,7 @@ void main(string[] args)
 		if (!options.LOFI)
 		{
 			//   maybe doing this manually and then loading is better.
-			logger.debug("(Zooming sky texture...)");
+			logger.log("(Zooming sky texture...)");
 			texarr_sky = spm.imresize(texarr_sky,2.0,interp='bicubic');
 			// imresize converts back to uint8 for whatever reason
 			texarr_sky = texarr_sky.astype(float);
@@ -437,6 +372,7 @@ void main(string[] args)
 		}
 	}
 
+/*
 texarr_disk = None
 if DISK_TEXTURE == 'texture':
     texarr_disk = spm.imread('textures/adisk.jpg')
@@ -463,7 +399,7 @@ def lookup(texarr,uvarrin): //uvarrin is an array of uv coordinates
 
 
 
-logger.debug("Computing rotation matrix...")
+logger.log("Computing rotation matrix...")
 
 			// this is just standard CGI vector algebra
 
@@ -488,7 +424,7 @@ pixelindices = np.arange(0,RESOLUTION[0]*RESOLUTION[1],1)
 			//total number of pixels
 numPixels = pixelindices.shape[0]
 
-logger.debug("Generated %d pixel flattened array.", numPixels)
+logger.log("Generated %d pixel flattened array.", numPixels)
 
 			//useful constant arrays
 ones = np.ones((numPixels))
@@ -547,7 +483,7 @@ def blendalpha(balpha,aalpha):
 
 
 def saveToImg(arr,fname):
-    logger.debug(" - saving %s...", fname)
+    logger.log(" - saving %s...", fname)
 		//copy
     imgout = np.array(arr)
 		//clip
@@ -585,7 +521,7 @@ chunks = np.array_split(pixelindices,numPixels/CHUNKSIZE + 1)
 
 NCHUNKS = len(chunks)
 
-logger.debug("Split into %d chunks of %d pixels each", NCHUNKS, chunks[0].shape[0])
+logger.log("Split into %d chunks of %d pixels each", NCHUNKS, chunks[0].shape[0])
 
 total_colour_buffer_preproc_shared = multi.Array(ctypes.c_float, numPixels * 3)
 total_colour_buffer_preproc = tonumpyarray(total_colour_buffer_preproc_shared)
@@ -593,7 +529,7 @@ total_colour_buffer_preproc = tonumpyarray(total_colour_buffer_preproc_shared)
 		//open preview window
 
 if not DISABLE_DISPLAY:
-    logger.debug("Opening display...")
+    logger.log("Opening display...")
 
     plt.ion()
     plt.imshow(total_colour_buffer_preproc.reshape((RESOLUTION[1],RESOLUTION[0],3)))
@@ -618,7 +554,7 @@ for i in range(NTHREADS):
 
 
 
-logger.debug("Split list into %d schedules with %s chunks each", NTHREADS, ", ".join([str(len(s)) for s in schedules]))
+logger.log("Split list into %d schedules with %s chunks each", NTHREADS, ", ".join([str(len(s)) for s in schedules]))
 
 
 
@@ -1008,7 +944,7 @@ for i in range(NTHREADS):
     p = multi.Process(target=raytrace_schedule,args=(i,schedules[i],total_colour_buffer_preproc_shared,output.queue))
     process_list.append(p)
 
-logger.debug("Starting threads...")
+logger.log("Starting threads...")
 
 for proc in process_list:
     proc.start()
@@ -1042,22 +978,22 @@ except KeyboardInterrupt:
 del output
 
 
-logger.debug("Done tracing.")
+logger.log("Done tracing.")
 
-logger.debug("Total raytracing time: %s", datetime.timedelta(seconds=(time.time() - start_time)))
+logger.log("Total raytracing time: %s", datetime.timedelta(seconds=(time.time() - start_time)))
 
 
-logger.debug("Postprocessing...")
+logger.log("Postprocessing...")
 
 			//gain
-logger.debug("- gain...")
+logger.log("- gain...")
 total_colour_buffer_preproc *= GAIN
 
 
 			// airy bloom
 if AIRY_BLOOM:
 
-    logger.debug("-computing Airy disk bloom...")
+    logger.log("-computing Airy disk bloom...")
     
 		//blending bloom
 
@@ -1088,7 +1024,7 @@ if AIRY_BLOOM:
 
     kern_radius = 25 * np.power( np.amax(colour_bloomd) / 5.0 , 1./3.) * RESOLUTION[0]/1920.
 
-    logger.debug("--(radius: %3f, kernel pixel radius: %3f, maximum source brightness: %3f)", radd, kern_radius, mxint)
+    logger.log("--(radius: %3f, kernel pixel radius: %3f, maximum source brightness: %3f)", radd, kern_radius, mxint)
     
     colour_bloomd = bloom.airy_convolve(colour_bloomd,radd)
  
@@ -1104,7 +1040,7 @@ else:
 
 if BLURDO:
 
-    logger.debug("-computing wide gaussian blur...")
+    logger.log("-computing wide gaussian blur...")
     
 		//hipass = np.outer(sqrnorm(total_colour_buffer_preproc) > BLOOMCUT, np.array([1.,1.,1.])) * total_colour_buffer_preproc
     blurd = np.copy(total_colour_buffer_preproc)
@@ -1112,7 +1048,7 @@ if BLURDO:
     blurd = blurd.reshape((RESOLUTION[1],RESOLUTION[0],3))
 
     for i in range(2):
-        logger.debug("- gaussian blur pass %d...", i)
+        logger.log("- gaussian blur pass %d...", i)
         blurd = ndim.gaussian_filter(blurd,int(0.05*RESOLUTION[0]))
 
     blurd = blurd.reshape((numPixels,3))
@@ -1124,7 +1060,7 @@ else:
 
 		//normalization
 if NORMALIZE > 0:
-    logger.debug("- normalizing...")
+    logger.log("- normalizing...")
     colour *= 1 / (NORMALIZE * np.amax(colour.flatten()) )
 
 
@@ -1134,9 +1070,10 @@ if NORMALIZE > 0:
 colour = np.clip(colour,0.,1.)
 
 
-logger.debug("Conversion to image and saving...")
+logger.log("Conversion to image and saving...")
 
 saveToImg(colour,"tests/out.png")
 saveToImg(total_colour_buffer_preproc,"tests/preproc.png")
 if BLURDO:
     saveToImg(colour_pb,"tests/postbloom.png")
+*/
