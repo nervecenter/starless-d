@@ -26,15 +26,14 @@ class Logger
 		return _instance;
 	}
 	
-	void
-	log(Char, A...)(in Char[] fmt, A args)
+	shared void
+	log(string msg)
 	{
-		string message = format(fmt, args);
-		writeln(message);
-		logfile.writeln(message);
+		writeln(msg);
+		logfile.writeln(msg);
 	}
 
-	void
+	shared void
 	error(string msg)
 	{
 		logfile.writeln("ERROR: ", msg);

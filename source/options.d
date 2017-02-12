@@ -1,8 +1,12 @@
 module starless.options;
 
-import starless.logger;
+import starless.logger,
+	starless.functions,
+	starless.types,
+	std.file,
+	std.json;
 
-enum Method { LEAPFROG, RK4 }
+enum Method { Leapfrog, RK4 }
 
 enum SkyTexture { None, Texture, Final }
 
@@ -92,4 +96,184 @@ struct Options {
 	double stepSize = 0.02;
 	Materials materials;
 	Geometry geometry;
+	int fogSkip = 1;
+	Method method = Method.RK4;
+}
+
+Options
+parseOptions(string[] argsTail)
+{
+	auto logger = Logger.instance;
+	Options options;
+
+	foreach (arg; args)
+	{
+		if (arg == "-d")
+			options.lofi = true;
+
+		else if (arg == "--no-graph")
+			options.drawGraph = false;
+
+		else if (arg == "--no-display")
+			options.disableDisplay = true;
+
+		else if (arg == "--no-shuffle")
+			options.disableShuffling = true;
+
+		else if ((arg == "-o") || (arg == "--no-bs"))
+		{
+			options.drawGraph = false;
+			options.disableDisplay = true;
+			options.disableShuffling = true;
+		}
+
+		else if (arg[0..2] == "-c")
+			options.chunkSize = to!int(arg[2..$]);
+
+		else if (arg[0..2] == "-j")
+			options.nThreads = to!int(arg[2..$]);
+
+		else if (arg[0..2] == "-r")
+		{
+			int[] res = arg[2..$].split('x').map(n => parse!int(n)).array;
+			if (len(res) != 2)
+			{
+				logger.error("Resolution \"" ~ arg[2..$] ~ "\" unreadable.\n"
+					~ "Please format resolution correctly (e.g.: -r640x480).");
+			}
+			options.resolution = res.toResolution();
+			options.overrideRes = true;
+		}
+
+		else if (arg[0] == '-')
+			logger.error("Unrecognized option: " ~ arg);
+
+		else
+			options.sceneFname = arg;
+	}
+
+	if (!exists(options.sceneFname))
+		logger.error("Scene file \"" ~ options.sceneFname ~ "\" does not exist");
+
+
+	logger.log("Reading scene %s...", sceneFname);
+	auto config = parseJSON(File(sceneFname, "r"));
+
+	//this section works, but only if the .scene file is good
+	//if there's anything wrong, it's a trainwreck
+	//must rewrite
+	try
+	{
+		if (!options.overrideRes)
+		{
+			auto loficonf = config["lofi"];
+			options.resolution =
+				loficonf["Resolution"].array
+				.map(n => n.integer).toResolution();
+			options.NITER = loficonf["Iterations"].integer;
+			options.STEP = loficonf["Stepsize"].floating;
+		}
+	}
+    catch (JSONException e)
+	{
+		logger.log("Error reading scene file: Insufficient data in \"lofi\" section.");
+		logger.log("Using defaults.");
+	}
+
+	if (!options.LOFI)
+	{
+		try
+		{
+			if (!options.overrideRes)
+			{
+				auto hificonf = config["hifi"];
+				options.resolution =
+					hificonf["Resolution"].array
+					.map(n => n.integer).toResolution();
+				options.iterations = hificonf["Iterations"].integer;
+				options.stepSize = hificonf["Stepsize"].floating;
+			}
+		}
+		catch(JSONException e)
+		{
+			logger.log("Error reading scene file: Insufficient data in \"hifi\" section.");
+			logger.log("Using lofi/defaults.");
+		}
+	}
+
+	try
+	{
+		auto geoconf = config["geometry"];
+		Geometry geo;
+		
+		geo.cameraPos =
+			geoconf["Cameraposition"].array
+			.map(f => f.floating).toVector3();
+		geo.tanFieldOfView = geoconf["Fieldofview"].floating;
+		geo.lookAt =
+			geoconf["Lookat"].array
+			.map(f => f.floating).toVector3();
+		geo.upVector =
+			geoconf["Upvector"].array
+			.map(f => f.floating).toVector3();
+		geo.distort = geoconf["Distort"].integer;
+		geo.diskInner = geoconf["Diskinner"].floating;
+		geo.diskOuter = geoconf["Diskouter"].floating;
+
+		options.geometry = geo;
+	}
+	catch (JSONException e)
+	{
+		logger.log("Error reading scene file: Insufficient data in geometry section");
+		logger.log("Using defaults.");
+	}
+
+	try
+	{
+		//options for 'blackbody' disktexture
+		auto matconf = config["materials"];
+		Materials mats;
+
+		mats.diskMultiplier = matconf["Diskmultiplier"].floating;
+		//DISK_ALPHA_MULTIPLIER = float(cfp.get('materials','Diskalphamultiplier'))
+		mats.diskIntensityDo = matconf["Diskintensitydo"].integer;
+		mats.redShift = matconf["Redshift"].floating;
+
+		mats.gain = matconf["Gain"].floating;
+		mats.normalize = matconf["Normalize"].floating;
+
+		mats.bloomCut = matconf["Bloomcut"].floating;
+		mats.horizonGrid = matconf["Horizongrid"].integer;
+		mats.diskTexture = matconf["Disktexture"].str.parseDiskTextureMode();
+		mats.skyTexture = matconf["Skytexture"].str.parseSkyTextureMode();
+		mats.skyDiskRatio = matconf["Skydiskratio"].floating;
+		mats.fogDo = matconf["Fogdo"].integer;
+		mats.blurDo = matconf["Blurdo"].integer;
+		mats.airyBloom = matconf["Airy_bloom"].integer;
+		mats.airyRadius = matconf["Airy_radius"].floating;
+		mats.fogMult = matconf["Fogmult"].floating;
+		//perform linear rgb->srgb conversion
+		mats.sRGBOut = matconf["sRGBOut"].integer;
+		mats.sRGBIn = matconf["sRGBIn"].integer;
+
+		options.materials = mats;
+	}
+	catch (JSONException e)
+	{
+		logger.log("Error reading scene file: Insufficient data in materials section.");
+		logger.log("Using defaults.");
+	}
+
+	logger.log("%dx%d", options.resolution.x, options.resolution.y);
+
+	//ensure the observer's 4-velocity is timelike
+	//since as of now the observer is schwarzschild stationary, we just need to check
+	//whether he's outside the horizon.
+	if (norm(options.geometry.cameraPos) <= 1.0)
+	{
+		logger.error("The observer's 4-velocity is not timelike.\n"
+					 ~ "(Try placing the observer outside the event horizon.)");
+	}
+	
+	return options;
 }

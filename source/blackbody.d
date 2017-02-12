@@ -14,6 +14,8 @@ import std.math,
 	starless.types,
     imaged.image;
 
+import std.array : array;
+
 // Accretion disk log temperature profile (R^{-3/4})
 // 3/4 log(3)
 enum LOGSHIFT = 0.823959216501;
@@ -26,7 +28,7 @@ disktemp(double[] sqrR, double logT0)
 
     double A = logT0 + LOGSHIFT;
 
-    return sqrR.map!(r => A - 0.375 * log(r)).array;
+    return sqrR.map!(r => to!double(A - 0.375 * log(r))).array;
 }
 
 
