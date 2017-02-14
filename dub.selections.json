@@ -3,6 +3,7 @@
 	"versions": {
 		"cairod": "0.0.1-alpha.3+1.10.2",
 		"color": "0.0.5",
+		"daffodil": "0.1.2",
 		"derelict-ft": "1.0.2",
 		"derelict-gl3": "1.0.21",
 		"derelict-util": "2.1.0",
@@ -15,6 +16,7 @@
 		"pegged": "~master",
 		"toml-d": "0.3.0",
 		"undead": "1.0.6",
+		"unit-threaded": "0.6.36",
 		"windows-headers": "1.0.1",
 		"x11": "1.0.16"
 	}

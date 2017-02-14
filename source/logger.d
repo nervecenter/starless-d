@@ -21,7 +21,7 @@ class Logger
 	static @property ref shared(Logger) instance()
 	{
 		if (_instance is null)
-			_instance = new Logger();
+			_instance = cast(shared Logger) new Logger();
 
 		return _instance;
 	}
@@ -37,7 +37,7 @@ class Logger
 	error(string msg)
 	{
 		logfile.writeln("ERROR: ", msg);
-		throw new Exception(message);
+		throw new Exception(msg);
 	}
 }
 		

@@ -12,7 +12,7 @@ import std.math,
     std.algorithm,
     std.conv,
 	starless.types,
-    imaged.image;
+    daffodil;
 
 import std.array : array;
 
@@ -57,8 +57,9 @@ RGB[]
 getRamp()
 {
 	RGB[] ramp;
+	Image colorTemps = load("data/colourtemp.jpg");
 	// TODO: Make sure I'm loading just horizontal pixel data from colourtemp.jpg
-	foreach (pix; load("data/colourtemp.jpg"))
+	foreach (pix; colorTemps.range())
 		ramp ~= pix / 255.0;
 
 	return ramp;

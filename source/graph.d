@@ -1,12 +1,15 @@
 module starless.graph;
 
-import starless.logger,
+import
+    starless.logger,
 	starless.types,
 	starless.options,
 	starless.functions,
 	ggplotd.aes,
-	ggplotd.ggplotd,
-	ggplotd.geom;
+	ggplotd.ggplotd;
+
+import ggplotd.geom : geomEllipse, geomLine;
+import ggplotd.axes : xaxisRange, yaxisRange;
 
 void
 drawGraph(Options options)
@@ -19,31 +22,33 @@ drawGraph(Options options)
 	
 	//plt.Circle(centerpt, radius, fc=facecolor)
 	//g_diskout       = plt.Circle((0,0),DISKOUTER, fc='0.75');
-	gg = aes!("x", "y", "size", "colour")
-		(0.0, 0.0, options.geometry.diskOuter, 0.75)
+	double dOut = options.geometry.diskOuter;
+	gg = [aes!("x", "y", "width", "height", "colour")
+		  (0.0, 0.0, dOut, dOut, "gray")]
 		.geomEllipse().putIn(gg);
 	
 	//g_diskin        = plt.Circle((0,0),DISKINNER, fc='white');
-	gg = aes!("x", "y", "size", "colour")
-		(0.0, 0.0, options.geometry.diskInner, "white")
+	double dIn = options.geometry.diskInner;
+	gg = [aes!("x", "y", "width", "height", "colour")
+		  (0.0, 0.0, dIn, dIn, "white")]
 		.geomEllipse().putIn(gg);
 	
 	
 	//g_photon        = plt.Circle((0,0),1.5,ec='y',fc='none');
-	gg = aes!("x", "y", "size", "colour", "fill")
-		(0.0, 0.0, 1.5, "yellow", 0.0)
+	gg = [aes!("x", "y", "width", "height", "colour", "fill")
+		  (0.0, 0.0, 1.5, 1.5, "yellow", 0.0)]
 		.geomEllipse().putIn(gg);
 	
 	//g_horizon       = plt.Circle((0,0),1,color='black');
-	gg = aes!("x", "y", "size", "colour")
-		(0.0, 0.0, 1.0, "black")
+	gg = [aes!("x", "y", "width", "height", "colour")
+		  (0.0, 0.0, 1.0, 1.0, "black")]
 		.geomEllipse().putIn(gg);
 	
 	Vector3 cam_pos = options.geometry.cameraPos;
 	
 	//g_cameraball    = plt.Circle((CAMERA_POS[2],CAMERA_POS[0]),0.2,color='black');
-	gg = aes!("x", "y", "size", "colour")
-		(cam_pos.x, cam_pos.z, 0.2, "black")
+	gg = [aes!("x", "y", "width", "height", "colour")
+		  (cam_pos.x, cam_pos.z, 0.2, 0.2, "black")]
 		.geomEllipse().putIn(gg);
 	
 	double gscale = 1.1 * norm(cam_pos);
@@ -53,8 +58,11 @@ drawGraph(Options options)
 	// draw line from camera to lookat point
 	Vector3 lookat = options.geometry.lookAt;
 	auto aes =
-		Aes!(double[], "x", double[], "y", double, "colour")
-		([cam_pos.x, lookat.x], [cam_pos.z, lookat.z], 0.05);
+		Aes!(double[], "x", double[], "y", string[], "colour")
+		([cam_pos.x, lookat.x],
+		 [cam_pos.z, lookat.z],
+		 ["black","black","black","black"])
+		.geomLine().putIn(gg);
 	/*ax.plot([CAMERA_POS[2],LOOKAT[2]],
 	  [CAMERA_POS[0],LOOKAT[0]],
 	  color='0.05',

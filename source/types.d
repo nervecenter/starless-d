@@ -14,8 +14,8 @@ toResolution(int[] ints)
 {
 	if (ints.length == 2)
 		return Resolution(ints[0], ints[1]);
-	else
-		throw Exception("Attempted to make a Resolution from non 2-element array.");
+	
+	throw new Exception("Attempted to make a Resolution from non 2-element array.");
 }
 
 struct Vector3
@@ -97,12 +97,12 @@ struct Vector3
 }
 
 Vector3
-toVector(double[] floats)
+toVector3(double[] floats)
 {
 	if (floats.length == 3)
 		return Vector3(floats[0], floats[1], floats[2]);
-	else
-		throw Exception("Attempted to make a Vector3 from non 3-element array.");
+
+	throw new Exception("Attempted to make a Vector3 from non 3-element array.");
 }
 
 struct RGB

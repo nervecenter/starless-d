@@ -1,10 +1,16 @@
 module starless.options;
 
-import starless.logger,
+import
+    starless.logger,
 	starless.functions,
 	starless.types,
 	std.file,
+	std.stdio,
+	std.conv,
 	std.json;
+
+import std.array : split, array;
+import std.algorithm : map;
 
 enum Method { Leapfrog, RK4 }
 
@@ -24,6 +30,7 @@ parseSkyTextureMode(string input)
 		Logger.instance.error("Error: "
 							  ~ input
 							  ~ " is not a valid sky rendering mode.");
+		assert(0);
 	}
 }
 
@@ -47,6 +54,7 @@ parseDiskTextureMode(string input)
 		Logger.instance.error("Error: "
 							  ~ input
 							  ~ " is not a valid accretion disc rendering mode.");
+		assert(0);
 	}
 }
 
@@ -71,7 +79,7 @@ struct Materials
 	double fogMult = 0.02;
 	double diskMultiplier = 100.0;
 	int diskIntensityDo = 1;
-	int gain = 1;
+	double gain = 1.0;
 	int normalize = -1;
 	int blurDo = 1;
 	int redShift = 1;
@@ -106,7 +114,7 @@ parseOptions(string[] argsTail)
 	auto logger = Logger.instance;
 	Options options;
 
-	foreach (arg; args)
+	foreach (arg; argsTail)
 	{
 		if (arg == "-d")
 			options.lofi = true;
@@ -135,8 +143,8 @@ parseOptions(string[] argsTail)
 
 		else if (arg[0..2] == "-r")
 		{
-			int[] res = arg[2..$].split('x').map(n => parse!int(n)).array;
-			if (len(res) != 2)
+			int[] res = arg[2..$].split("x").map!(n => parse!int(n)).array;
+			if (res.length != 2)
 			{
 				logger.error("Resolution \"" ~ arg[2..$] ~ "\" unreadable.\n"
 					~ "Please format resolution correctly (e.g.: -r640x480).");
@@ -156,8 +164,8 @@ parseOptions(string[] argsTail)
 		logger.error("Scene file \"" ~ options.sceneFname ~ "\" does not exist");
 
 
-	logger.log("Reading scene %s...", sceneFname);
-	auto config = parseJSON(File(sceneFname, "r"));
+	logger.log("Reading scene " ~ options.sceneFname ~ "...");
+	auto config = parseJSON(options.sceneFname);
 
 	//this section works, but only if the .scene file is good
 	//if there's anything wrong, it's a trainwreck
@@ -169,9 +177,10 @@ parseOptions(string[] argsTail)
 			auto loficonf = config["lofi"];
 			options.resolution =
 				loficonf["Resolution"].array
-				.map(n => n.integer).toResolution();
-			options.NITER = loficonf["Iterations"].integer;
-			options.STEP = loficonf["Stepsize"].floating;
+				.map!(n => n.integer.to!int()).array
+				.toResolution();
+			options.iterations = loficonf["Iterations"].integer.to!int();
+			options.stepSize = loficonf["Stepsize"].floating;
 		}
 	}
     catch (JSONException e)
@@ -180,7 +189,7 @@ parseOptions(string[] argsTail)
 		logger.log("Using defaults.");
 	}
 
-	if (!options.LOFI)
+	if (!options.lofi)
 	{
 		try
 		{
@@ -189,8 +198,9 @@ parseOptions(string[] argsTail)
 				auto hificonf = config["hifi"];
 				options.resolution =
 					hificonf["Resolution"].array
-					.map(n => n.integer).toResolution();
-				options.iterations = hificonf["Iterations"].integer;
+					.map!(n => n.integer.to!int()).array
+					.toResolution();
+				options.iterations = hificonf["Iterations"].integer.to!int();
 				options.stepSize = hificonf["Stepsize"].floating;
 			}
 		}
@@ -208,15 +218,18 @@ parseOptions(string[] argsTail)
 		
 		geo.cameraPos =
 			geoconf["Cameraposition"].array
-			.map(f => f.floating).toVector3();
+			.map!(f => f.floating).array
+			.toVector3();
 		geo.tanFieldOfView = geoconf["Fieldofview"].floating;
 		geo.lookAt =
 			geoconf["Lookat"].array
-			.map(f => f.floating).toVector3();
+			.map!(f => f.floating).array
+			.toVector3();
 		geo.upVector =
 			geoconf["Upvector"].array
-			.map(f => f.floating).toVector3();
-		geo.distort = geoconf["Distort"].integer;
+			.map!(f => f.floating).array
+			.toVector3();
+		geo.distort = geoconf["Distort"].integer.to!int();
 		geo.diskInner = geoconf["Diskinner"].floating;
 		geo.diskOuter = geoconf["Diskouter"].floating;
 
@@ -236,25 +249,25 @@ parseOptions(string[] argsTail)
 
 		mats.diskMultiplier = matconf["Diskmultiplier"].floating;
 		//DISK_ALPHA_MULTIPLIER = float(cfp.get('materials','Diskalphamultiplier'))
-		mats.diskIntensityDo = matconf["Diskintensitydo"].integer;
-		mats.redShift = matconf["Redshift"].floating;
+		mats.diskIntensityDo = matconf["Diskintensitydo"].integer.to!int();
+		mats.redShift = matconf["Redshift"].integer.to!int();
 
 		mats.gain = matconf["Gain"].floating;
-		mats.normalize = matconf["Normalize"].floating;
+		mats.normalize = matconf["Normalize"].integer.to!int();
 
 		mats.bloomCut = matconf["Bloomcut"].floating;
-		mats.horizonGrid = matconf["Horizongrid"].integer;
+		mats.horizonGrid = matconf["Horizongrid"].integer.to!int();
 		mats.diskTexture = matconf["Disktexture"].str.parseDiskTextureMode();
 		mats.skyTexture = matconf["Skytexture"].str.parseSkyTextureMode();
 		mats.skyDiskRatio = matconf["Skydiskratio"].floating;
-		mats.fogDo = matconf["Fogdo"].integer;
-		mats.blurDo = matconf["Blurdo"].integer;
-		mats.airyBloom = matconf["Airy_bloom"].integer;
+		mats.fogDo = matconf["Fogdo"].integer.to!int();
+		mats.blurDo = matconf["Blurdo"].integer.to!int();
+		mats.airyBloom = matconf["Airy_bloom"].integer.to!int();
 		mats.airyRadius = matconf["Airy_radius"].floating;
 		mats.fogMult = matconf["Fogmult"].floating;
 		//perform linear rgb->srgb conversion
-		mats.sRGBOut = matconf["sRGBOut"].integer;
-		mats.sRGBIn = matconf["sRGBIn"].integer;
+		mats.sRGBOut = matconf["sRGBOut"].integer.to!int();
+		mats.sRGBIn = matconf["sRGBIn"].integer.to!int();
 
 		options.materials = mats;
 	}
@@ -264,7 +277,7 @@ parseOptions(string[] argsTail)
 		logger.log("Using defaults.");
 	}
 
-	logger.log("%dx%d", options.resolution.x, options.resolution.y);
+	logger.log(format("%dx%d", options.resolution.x, "x", options.resolution.y));
 
 	//ensure the observer's 4-velocity is timelike
 	//since as of now the observer is schwarzschild stationary, we just need to check
