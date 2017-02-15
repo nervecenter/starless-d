@@ -111,7 +111,7 @@ airy_convolve(RGB[][] arr, double radius, int kernel_radius = 25)
 	foreach (int i, row; kernel)
 	foreach (int j, pix; row)
 	{
-		output[i][j] = convolve2d(arr[i][j], kernel[i][j], "same", "symm");
+		//output[i][j] = convolve2d(arr[i][j], kernel[i][j], "same", "symm");
 	}
 	/*output[:, :, i] = convolve2d(arr[:, :, i],
 									 kernel[:, :, i],

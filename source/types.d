@@ -183,6 +183,7 @@ struct RGB
     }
 }
 
+/*
 debug
 {
 	import std.stdio;
@@ -228,3 +229,4 @@ debug
 			writeln(i, ", ", val);
 	}
 }
+*/

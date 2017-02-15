@@ -8,11 +8,12 @@ module starless.blackbody;
 // TODO: Find replacements for numpy, scipy
 //import numpy as np
 //import scipy.misc as spm
-import std.math,
+import
+    std.math,
     std.algorithm,
     std.conv,
 	starless.types,
-    daffodil;
+	imaged;
 
 import std.array : array;
 
@@ -57,10 +58,18 @@ RGB[]
 getRamp()
 {
 	RGB[] ramp;
-	Image colorTemps = load("data/colourtemp.jpg");
+	Image colorTemps = getDecoder("data/colourtemp.jpg").image();
+	Pixel pixel;
 	// TODO: Make sure I'm loading just horizontal pixel data from colourtemp.jpg
-	foreach (pix; colorTemps.range())
-		ramp ~= pix / 255.0;
+	for (ulong i = 0L; i < colorTemps.width(); i++)
+	{
+		pixel = colorTemps.getPixel(i, 0L);
+		ramp ~= RGB(pixel.r.to!double(),
+					pixel.g.to!double(),
+					pixel.b.to!double()) / 255.0;
+		// ramp ~= pix / 255.0;
+
+	}
 
 	return ramp;
 }

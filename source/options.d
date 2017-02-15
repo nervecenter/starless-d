@@ -16,6 +16,8 @@ enum Method { Leapfrog, RK4 }
 
 enum SkyTexture { None, Texture, Final }
 
+enum DiskTexture { None, Texture, Solid, Grid, Blackbody }
+
 SkyTexture
 parseSkyTextureMode(string input)
 {
@@ -33,8 +35,6 @@ parseSkyTextureMode(string input)
 		assert(0);
 	}
 }
-
-enum DiskTexture { None, Texture, Solid, Grid, Blackbody }
 
 DiskTexture
 parseDiskTextureMode(string input)
@@ -72,9 +72,9 @@ struct Geometry
 struct Materials
 {
 	int horizonGrid = 1;
-	DiskTexture diskTexture;
-	SkyTexture skyTexture;
-	double skyDiskRatio;
+	DiskTexture diskTexture = DiskTexture.Texture;
+	SkyTexture skyTexture = SkyTexture.Texture;
+	double skyDiskRatio = 0.05;
 	int fogDo = 1;
 	double fogMult = 0.02;
 	double diskMultiplier = 100.0;
@@ -97,7 +97,8 @@ struct Options {
 	int nThreads = 4;
 	bool drawGraph = true;
 	bool overrideRes = false;
-	string sceneFname = "scenes/default.scene";
+	// string sceneFname = "scenes/blackbody.json";
+	string sceneFname;
 	int chunkSize = 9000;
 	Resolution resolution = Resolution(160, 120);
 	int iterations = 1000;
@@ -161,12 +162,19 @@ parseOptions(string[] argsTail)
 	}
 
 	if (!exists(options.sceneFname))
-		logger.error("Scene file \"" ~ options.sceneFname ~ "\" does not exist");
+	{
+		logger.log("Scene file \"" ~ options.sceneFname ~ "\" does not exist");
+		logger.log("Using defaults.");
+		return options;
+	}
 
-
+	JSONValue config;
 	logger.log("Reading scene " ~ options.sceneFname ~ "...");
-	auto config = parseJSON(options.sceneFname);
-
+	try
+		config = parseJSON(options.sceneFname);
+	catch (JSONException e)
+		logger.error(e.msg);
+	
 	//this section works, but only if the .scene file is good
 	//if there's anything wrong, it's a trainwreck
 	//must rewrite

@@ -5,7 +5,7 @@
 	],
 	"dependencies": {
 		"ggplotd": ">=0.4.5",
-		"daffodil": "~>0.1.1"
+		"imaged": "~>1.0.2"
 	},
 	"description": "A black hole raytracer in D, based on Riccardo Antonelli's starless.",
 	"copyright": "Copyright © 2017, Chris",

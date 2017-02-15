@@ -11,7 +11,7 @@
 	},
 	"geometry" : {
 		"Cameraposition" : [0.0, 4.3, -9.0],
-		"Fieldofview"    : 1.5
+		"Fieldofview"    : 1.5,
 		"Lookat"         : [0.0, 0.0, 0.0],
 		"Upvector"       : [0.0, 1.0, 0.0],
 		"Diskinner"      : 3.0,

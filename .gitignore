@@ -7,3 +7,9 @@ __test__*__
 *~
 math/
 *.exe
+
+logs/
+
+tests/
+
+starless-d

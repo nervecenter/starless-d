@@ -1,9 +1,12 @@
 module starless.logger;
 
-import std.stdio,
+import
+    std.stdio,
 	std.file,
 	std.datetime;
+
 import std.format : format;
+import std.c.stdlib : exit;
 
 class Logger
 {
@@ -37,7 +40,8 @@ class Logger
 	error(string msg)
 	{
 		logfile.writeln("ERROR: ", msg);
-		throw new Exception(msg);
+		writeln("ERROR: ", msg);
+		exit(-1);
 	}
 }
 		
