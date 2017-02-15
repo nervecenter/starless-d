@@ -61,9 +61,9 @@ getRamp()
 	Image colorTemps = getDecoder("data/colourtemp.jpg").image();
 	Pixel pixel;
 	// TODO: Make sure I'm loading just horizontal pixel data from colourtemp.jpg
-	for (ulong i = 0L; i < colorTemps.width(); i++)
+	for (int i = 0; i < colorTemps.width(); i++)
 	{
-		pixel = colorTemps.getPixel(i, 0L);
+		pixel = colorTemps.getPixel(i, 0);
 		ramp ~= RGB(pixel.r.to!double(),
 					pixel.g.to!double(),
 					pixel.b.to!double()) / 255.0;

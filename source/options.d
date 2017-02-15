@@ -11,6 +11,7 @@ import
 
 import std.array : split, array;
 import std.algorithm : map;
+import std.format : format;
 
 enum Method { Leapfrog, RK4 }
 

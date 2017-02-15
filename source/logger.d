@@ -6,7 +6,7 @@ import
 	std.datetime;
 
 import std.format : format;
-import std.c.stdlib : exit;
+import core.stdc.stdlib : exit;
 
 class Logger
 {
