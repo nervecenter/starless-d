@@ -5,11 +5,8 @@ __dummy.html
 *.obj
 __test__*__
 *~
+starless-d
 math/
 *.exe
-
 logs/
-
 tests/
-
-starless-d

@@ -10,6 +10,7 @@ import
 
 import ggplotd.geom : geomEllipse, geomLine;
 import ggplotd.axes : xaxisRange, yaxisRange;
+import std.format : format;
 
 void
 drawGraph(Options options)
@@ -23,12 +24,14 @@ drawGraph(Options options)
 	//plt.Circle(centerpt, radius, fc=facecolor)
 	//g_diskout       = plt.Circle((0,0),DISKOUTER, fc='0.75');
 	double dOut = options.geometry.diskOuter;
+	logger.log(format("Outer disk radius: %f", dOut));
 	gg = [aes!("x", "y", "width", "height", "colour", "fill")
 		  (0.0, 0.0, dOut + dOut, dOut + dOut, "gray", 1.0)]
 		.geomEllipse().putIn(gg);
 	
 	//g_diskin        = plt.Circle((0,0),DISKINNER, fc='white');
 	double dIn = options.geometry.diskInner;
+	logger.log(format("Inner disk radius: %f", dIn));
 	gg = [aes!("x", "y", "width", "height", "colour", "fill")
 		  (0.0, 0.0, dIn + dIn, dIn + dIn, "white", 1.0)]
 		.geomEllipse().putIn(gg);
@@ -47,8 +50,8 @@ drawGraph(Options options)
 	Vector3 cam_pos = options.geometry.cameraPos;
 	
 	//g_cameraball    = plt.Circle((CAMERA_POS[2],CAMERA_POS[0]),0.2,color='black');
-	gg = [aes!("x", "y", "width", "height", "colour")
-		  (cam_pos.x, cam_pos.z, 0.4, 0.4, "black")]
+	gg = [aes!("x", "y", "width", "height", "colour", "fill")
+		  (cam_pos.z, cam_pos.x, 0.4, 0.4, "black", 1.0)]
 		.geomEllipse().putIn(gg);
 	
 	double gscale = 1.1 * norm(cam_pos);
@@ -59,8 +62,8 @@ drawGraph(Options options)
 	Vector3 lookat = options.geometry.lookAt;
 	auto aes =
 		Aes!(double[], "x", double[], "y", string[], "colour")
-		([cam_pos.x, lookat.x],
-		 [cam_pos.z, lookat.z],
+		([cam_pos.z, lookat.z],
+		 [cam_pos.x, lookat.x],
 		 ["black","black","black","black"])
 		.geomLine().putIn(gg);
 	/*ax.plot([CAMERA_POS[2],LOOKAT[2]],

@@ -7,11 +7,12 @@ import
 	std.file,
 	std.stdio,
 	std.conv,
-	std.json;
+	std.json,
+	std.array;
 
-import std.array : split, array;
 import std.algorithm : map;
 import std.format : format;
+import std.string : strip, removechars;
 
 enum Method { Leapfrog, RK4 }
 
@@ -110,12 +111,26 @@ struct Options {
 	Method method = Method.RK4;
 }
 
+JSONValue
+readSceneJSON(string filename)
+{
+	auto jsonfile = File("scenes/" ~ filename, "r");
+	auto jsonstr =
+		jsonfile.byLine()
+		.map!strip
+		.map!(l => l.removechars(" "))
+		.map!(l => l.removechars("\t"))
+		.join();
+	return parseJSON(jsonstr);
+}
+
 Options
 parseOptions(string[] argsTail)
 {
 	auto logger = Logger.instance;
 	Options options;
 
+	// TODO: Overhaul CLI option parsing
 	foreach (arg; argsTail)
 	{
 		if (arg == "-d")
@@ -162,7 +177,7 @@ parseOptions(string[] argsTail)
 			options.sceneFname = arg;
 	}
 
-	if (!exists(options.sceneFname))
+	if (!exists("scenes/" ~ options.sceneFname))
 	{
 		logger.log("Scene file \"" ~ options.sceneFname ~ "\" does not exist");
 		logger.log("Using defaults.");
@@ -172,7 +187,7 @@ parseOptions(string[] argsTail)
 	JSONValue config;
 	logger.log("Reading scene " ~ options.sceneFname ~ "...");
 	try
-		config = parseJSON(options.sceneFname);
+		config = readSceneJSON(options.sceneFname);
 	catch (JSONException e)
 		logger.error(e.msg);
 	
@@ -246,8 +261,9 @@ parseOptions(string[] argsTail)
 	}
 	catch (JSONException e)
 	{
-		logger.log("Error reading scene file: Insufficient data in geometry section");
-		logger.log("Using defaults.");
+		logger.log("Error reading scene file: "
+				   ~ "Insufficient data in geometry section.\n"
+				   ~ "Using defaults.");
 	}
 
 	try
@@ -282,11 +298,12 @@ parseOptions(string[] argsTail)
 	}
 	catch (JSONException e)
 	{
-		logger.log("Error reading scene file: Insufficient data in materials section.");
-		logger.log("Using defaults.");
+		logger.log("Error reading scene file: "
+				   ~ "Insufficient data in materials section.\n"
+				   ~ "Using defaults.");
 	}
 
-	logger.log(format("%dx%d", options.resolution.x, "x", options.resolution.y));
+	logger.log(format("Resolution: %dx%d", options.resolution.x, options.resolution.y));
 
 	//ensure the observer's 4-velocity is timelike
 	//since as of now the observer is schwarzschild stationary, we just need to check
