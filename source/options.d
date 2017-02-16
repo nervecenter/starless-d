@@ -130,51 +130,57 @@ parseOptions(string[] argsTail)
 	auto logger = Logger.instance;
 	Options options;
 
-	// TODO: Overhaul CLI option parsing
-	foreach (arg; argsTail)
+	string[] flags;
+	if (argsTail[$-1][0] != '-')
 	{
-		if (arg == "-d")
+		options.sceneFname = argsTail[$-1];
+		flags = argsTail[0..$-1];
+	}
+	else
+		flags = argsTail;
+
+	// TODO: Overhaul CLI option parsing
+	foreach (flag; flags)
+	{
+		if (flag == "-d")
 			options.lofi = true;
 
-		else if (arg == "--no-graph")
+		else if (flag == "--no-graph")
 			options.drawGraph = false;
 
-		else if (arg == "--no-display")
+		else if (flag == "--no-display")
 			options.disableDisplay = true;
 
-		else if (arg == "--no-shuffle")
+		else if (flag == "--no-shuffle")
 			options.disableShuffling = true;
 
-		else if ((arg == "-o") || (arg == "--no-bs"))
+		else if ((flag == "-o") || (flag == "--no-bs"))
 		{
 			options.drawGraph = false;
 			options.disableDisplay = true;
 			options.disableShuffling = true;
 		}
 
-		else if (arg[0..2] == "-c")
-			options.chunkSize = to!int(arg[2..$]);
+		else if (flag[0..2] == "-c")
+			options.chunkSize = to!int(flag[2..$]);
 
-		else if (arg[0..2] == "-j")
-			options.nThreads = to!int(arg[2..$]);
+		else if (flag[0..2] == "-j")
+			options.nThreads = to!int(flag[2..$]);
 
-		else if (arg[0..2] == "-r")
+		else if (flag[0..2] == "-r")
 		{
-			int[] res = arg[2..$].split("x").map!(n => parse!int(n)).array;
+			int[] res = flag[2..$].split("x").map!(n => parse!int(n)).array;
 			if (res.length != 2)
 			{
-				logger.error("Resolution \"" ~ arg[2..$] ~ "\" unreadable.\n"
+				logger.error("Resolution \"" ~ flag[2..$] ~ "\" unreadable.\n"
 					~ "Please format resolution correctly (e.g.: -r640x480).");
 			}
 			options.resolution = res.toResolution();
 			options.overrideRes = true;
 		}
 
-		else if (arg[0] == '-')
-			logger.error("Unrecognized option: " ~ arg);
-
-		else
-			options.sceneFname = arg;
+		else if (flag[0] == '-')
+			logger.error("Unrecognized option: " ~ flag);
 	}
 
 	if (!exists("scenes/" ~ options.sceneFname))
