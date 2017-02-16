@@ -18,7 +18,8 @@ import bloom
 import gc
 import curses*/
 
-import std.file,
+import
+    std.file,
 	std.conv,
 	core.stdc.math,
 	starless.types,
@@ -27,10 +28,38 @@ import std.file,
 	// starless.functions,
 	starless.graph;
 
+static immutable string
+usage =
+"starless-d, a simple black hole raytracer written in D\n\n" ~
+"Translated by Chris Collazo\n" ~
+"Original written in Python by Riccardo Antonelli\n" ~
+"Source at https://github.com/rantonels/starless\n" ~
+"How it works: https://rantonels.github.io/starless/\n\n" ~
+"Usage:\n" ~
+"  starless-d [<option>...] <scene>\n\n" ~
+"Where:\n" ~
+"  <scene>         Name of a scene without extension, stored as JSON in ./scenes\n\n" ~
+"<option>:\n" ~
+"  -d              Use low-fidelity options from the scene\n" ~
+"  --no-graph      Do not draw a schematic of the scene\n" ~
+"  --no-display    Do not display a preview\n" ~
+"  --no-shuffle    Do not shuffle the pixel indices\n" ~
+"  -o              All of the last three: No graph, preview, or shuffling\n" ~
+"  --no-bs         Same as -o\n" ~
+"  -c<chunksize>   Size of chunks to be dispatched to threads\n" ~
+"  -j<numthreads>  Number of threads to render with\n" ~
+"  -r<xres>x<yres> Resolution of final render\n\n";
+
 void main(string[] args)
 {
+	if (args.length <= 1)
+	{
+		import std.stdio : write;
+		write(usage);
+		return;
+	}
+
 	auto logger = Logger.instance;
-	
 	Options options = parseOptions(args[1..$]);
 
 	// double DISKINNERSQR =
