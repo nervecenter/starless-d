@@ -124,35 +124,11 @@ readSceneJSON(string filename)
 	return parseJSON(jsonstr);
 }
 
-immutable const string
-usage =
-"starless-d\n" ~
-"Usage:\n" ~
-"  starless-d [<option>...] <file>\n\n" ~
-"Where:\n" ~
-"  <file>\t\tA scene JSON file, contained in \"./scenes\"\n\n" ~
-"<option>:\n" ~
-"  -d\t\tUse low-fidelity options from the scene\n" ~
-"  --no-graph\t\tDo not draw a schematic of the scene\n" ~
-"  --no-display\t\tDo not display a preview\n" ~
-"  --no-shuffle\t\tDo not shuffle the pixel indices\n" ~
-"  -o\t\tAll of the last three: No graph, preview, or shuffling\n" ~
-"  --no-bs\t\tSame as -o\n" ~
-"  -c<chunksize>\t\tSize of chunks to be dispatched to threads\n" ~
-"  -j<numthreads>\t\tNumber of threads to render with\n" ~
-"  -r<xres>x<yres>\t\tResolution of final render\n\n";
-
 Options
 parseOptions(string[] argsTail)
 {
 	auto logger = Logger.instance;
 	Options options;
-
-	if (argsTail.length == 0)
-	{
-		logger.log("No arguments given, using defaults.");
-		return options;
-	}
 
 	string[] flags;
 	if (argsTail[$-1][0] != '-')
