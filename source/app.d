@@ -25,6 +25,7 @@ import
 	starless.types,
 	starless.options,
 	starless.logger,
+	starless.image;
 	// starless.functions,
 	starless.graph;
 
@@ -79,21 +80,19 @@ void main(string[] args)
 		mkdir("tests");
 
 	drawGraph(options);
-}
-/*
-	// these need to be here
 
 	logger.log("Loading textures...");
-	if (options.materials.SKY_TEXTURE == 'texture')
+	if (options.materials.skyTexture == SkyTexture.Texture)
 	{
-		auto texarr_sky = spm.imread('textures/bgedit.jpg');
-		// must convert to float here so we can work in linear colour
-		texarr_sky = texarr_sky.astype(float);
-		texarr_sky /= 255.0;
+		RGB[][] texArrSky = loadImage("textures/bgedit.jpg");
+		foreach (ref row; texArrSky)
+		foreach (ref pix; row)
+			pix /= 255.0;
 
 		// must do this before resizing to get correct results
-		if (options.materials.SRGBIN)
-			srgbtorgb(texarr_sky);
+		// TODO: sRGBIn and sRGBOut are probably both bools
+		if (options.materials.sRGBIn)
+			srgbtorgb(texArrSky);
 	
 		if (!options.LOFI)
 		{
@@ -105,7 +104,8 @@ void main(string[] args)
 			texarr_sky /= 255.0;
 		}
 	}
-
+}
+/*
 texarr_disk = None
 if DISK_TEXTURE == 'texture':
     texarr_disk = spm.imread('textures/adisk.jpg')

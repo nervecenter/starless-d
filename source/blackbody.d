@@ -13,7 +13,8 @@ import
     std.algorithm,
     std.conv,
 	starless.types,
-	imaged;
+	starless.logger,
+	starless.image;
 
 import std.array : array;
 
@@ -57,21 +58,8 @@ intensity(double[] T)
 RGB[]
 getRamp()
 {
-	RGB[] ramp;
-	Image colorTemps = getDecoder("data/colourtemp.jpg").image();
-	Pixel pixel;
-	// TODO: Make sure I'm loading just horizontal pixel data from colourtemp.jpg
-	for (int i = 0; i < colorTemps.width(); i++)
-	{
-		pixel = colorTemps.getPixel(i, 0);
-		ramp ~= RGB(pixel.r.to!double(),
-					pixel.g.to!double(),
-					pixel.b.to!double()) / 255.0;
-		// ramp ~= pix / 255.0;
-
-	}
-
-	return ramp;
+	RGB[][] colorTemps = loadImage("data/colourtemp.jpg");
+	return colorTemps.map!(row => row[0] / 255.0).array;
 }
 
 enum rampsz = 3;
