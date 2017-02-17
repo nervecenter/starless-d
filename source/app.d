@@ -52,6 +52,13 @@ usage =
 
 void main(string[] args)
 {
+	// TEST AREA
+
+	foreach (pix; starless.blackbody.getRamp())
+		std.stdio.writeln(pix);
+	
+	// END TEST AREA
+	
 	if (args.length <= 1)
 	{
 		import std.stdio : write;

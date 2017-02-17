@@ -99,8 +99,8 @@ struct Options {
 	int nThreads = 4;
 	bool drawGraph = true;
 	bool overrideRes = false;
-	// string sceneFname = "scenes/blackbody.json";
-	string sceneFname;
+	// string sceneName = "scenes/blackbody.json";
+	string sceneName;
 	int chunkSize = 9000;
 	Resolution resolution = Resolution(160, 120);
 	int iterations = 1000;
@@ -133,7 +133,7 @@ parseOptions(string[] argsTail)
 	string[] flags;
 	if (argsTail[$-1][0] != '-')
 	{
-		options.sceneFname = argsTail[$-1];
+		options.sceneName = argsTail[$-1];
 		flags = argsTail[0..$-1];
 	}
 	else
@@ -185,17 +185,17 @@ parseOptions(string[] argsTail)
 			logger.error("Unrecognized option: " ~ flag);
 	}
 
-	if (!exists("scenes/" ~ options.sceneFname))
+	if (!exists("scenes/" ~ options.sceneName ~ ".json"))
 	{
-		logger.log("Scene file \"" ~ options.sceneFname ~ "\" does not exist");
+		logger.log("Scene file \"" ~ options.sceneName ~ "\" does not exist");
 		logger.log("Using defaults.");
 		return options;
 	}
 
 	JSONValue config;
-	logger.log("Reading scene " ~ options.sceneFname ~ "...");
+	logger.log("Reading scene " ~ options.sceneName ~ "...");
 	try
-		config = readSceneJSON(options.sceneFname);
+		config = readSceneJSON(options.sceneName ~ ".json");
 	catch (JSONException e)
 		logger.error(e.msg);
 	

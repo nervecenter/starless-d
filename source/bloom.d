@@ -3,7 +3,8 @@ module starless.bloom;
 //from scipy.special import j1
 //from scipy.signal import convolve2d
 //import numpy as np
-import std.math,
+import
+    std.math,
 	std.range,
 	std.conv,
 	std.algorithm,
