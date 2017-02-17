@@ -15,7 +15,7 @@ RGB[]
 rgbtosrgb(RGB[] arr)
 {
 	//see https://en.wikipedia.org/wiki/SRGB#Specification_of_the_transformation
-	Logger.instance.log("RGB -> sRGB...");
+	//Logger.instance.log("RGB -> sRGB...");
 	
 	RGB[] result;
 	foreach (int i, pix; arr)
@@ -29,6 +29,11 @@ rgbtosrgb(RGB[] arr)
 	
 	return result;
 }
+
+RGB[][]
+rgbtosrgb(RGB[][] im)
+{
+	
 
 // convert from srgb to linear rgb
 RGB[]
