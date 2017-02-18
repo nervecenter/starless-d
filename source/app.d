@@ -92,7 +92,7 @@ void main(string[] args)
 		// must do this before resizing to get correct results
 		// TODO: sRGBIn and sRGBOut are probably both bools
 		if (options.materials.sRGBIn)
-			srgbtorgb(texArrSky);
+			texArrSkysrgbtorgb(texArrSky);
 	
 		if (!options.LOFI)
 		{

@@ -1,8 +1,12 @@
 module starless.functions;
 
-import starless.logger,
+import
+    starless.logger,
 	starless.types,
 	core.stdc.math;
+
+import std.algorithm : map;
+import std.array : array;
 
 double
 norm(Vector3 vec)
@@ -33,13 +37,15 @@ rgbtosrgb(RGB[] arr)
 RGB[][]
 rgbtosrgb(RGB[][] im)
 {
+	return im.map!(row => rgbtosrgb(row)).array;
+}
 	
 
 // convert from srgb to linear rgb
 RGB[]
 srgbtorgb(RGB[] arr)
 {
-	Logger.instance.log("sRGB -> RGB...");
+	// Logger.instance.log("sRGB -> RGB...");
 	
 	RGB[] result;
 	foreach (int i, pix; arr)
@@ -57,4 +63,10 @@ srgbtorgb(RGB[] arr)
 	// arr[mask] /= 1.055;
 	// arr[mask] **= 2.4;
 	// arr[-mask] /= 12.92;
+}
+
+RGB[][]
+srgbtorgb(RGB[][] im)
+{
+	return im.map!(row => srgbtorgb(row)).array;
 }
