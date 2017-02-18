@@ -98,6 +98,7 @@ void main(string[] args)
 		{
 			//   maybe doing this manually and then loading is better.
 			logger.log("(Zooming sky texture...)");
+			// Blow the image up with twice the dimensions, bicubic algo
 			texarr_sky = spm.imresize(texarr_sky,2.0,interp='bicubic');
 			// imresize converts back to uint8 for whatever reason
 			texarr_sky = texarr_sky.astype(float);
