@@ -60,7 +60,8 @@ parseDiskTextureMode(string input)
 	}
 }
 
-struct Geometry
+struct
+Geometry
 {
 	Vector3 cameraPos = Vector3(0.0, 1.0, -10.0);
 	double tanFieldOfView = 1.5;
@@ -71,7 +72,8 @@ struct Geometry
 	int distort = 1;
 }
 
-struct Materials
+struct
+Materials
 {
 	int horizonGrid = 1;
 	DiskTexture diskTexture = DiskTexture.Texture;
@@ -92,7 +94,8 @@ struct Materials
 	double airyRadius = 1.0;
 }
 
-struct Options {
+struct
+Options {
 	bool lofi = false;
 	bool disableDisplay = false;
 	bool disableShuffling = false;

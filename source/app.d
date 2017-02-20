@@ -99,27 +99,28 @@ void main(string[] args)
 			//   maybe doing this manually and then loading is better.
 			logger.log("(Zooming sky texture...)");
 			// Blow the image up with twice the dimensions, bicubic algo
-			texarr_sky = spm.imresize(texarr_sky,2.0,interp='bicubic');
+			texArrSky = texArrSky.resizeSimpleImage(texArrSky.length,
+													texArrSky[0].length);
 			// imresize converts back to uint8 for whatever reason
-			texarr_sky = texarr_sky.astype(float);
-			texarr_sky /= 255.0;
+			//texarr_sky /= 255.0;
 		}
+	}
+	
+	texarr_disk = None;
+	if (options.materials.diskTexture == DiskTexture.Texture)
+		texarr_disk = spm.imread('textures/adisk.jpg');
+	if (DISK_TEXTURE == 'test')
+		texarr_disk = spm.imread('textures/adisktest.jpg');
+	if (texarr_disk is not None)
+	{
+		// must convert to float here so we can work in linear colour
+		texarr_disk = texarr_disk.astype(float);
+		texarr_disk /= 255.0;
+		if (SRGBIN)
+			srgbtorgb(texarr_disk);
 	}
 }
 /*
-texarr_disk = None
-if DISK_TEXTURE == 'texture':
-    texarr_disk = spm.imread('textures/adisk.jpg')
-if DISK_TEXTURE == 'test':
-    texarr_disk = spm.imread('textures/adisktest.jpg')
-if texarr_disk is not None:
-    // must convert to float here so we can work in linear colour
-    texarr_disk = texarr_disk.astype(float)
-    texarr_disk /= 255.0
-    if SRGBIN:
-        srgbtorgb(texarr_disk)
-
-
 			//defining texture lookup
 def lookup(texarr,uvarrin): //uvarrin is an array of uv coordinates
     uvarr = np.clip(uvarrin,0.0,0.999)
